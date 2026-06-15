@@ -1,5 +1,5 @@
 import { googleSheetsService } from './googleSheets.service';
-import type { KPIData, ChartDataPoint } from '@/lib/mock-data';
+import type { KPIData, ChartDataPoint } from '@/types/dashboard';
 import type { TargetPencapaianRow, CatatanGuruRow } from '@/types/database';
 
 export interface DashboardData {

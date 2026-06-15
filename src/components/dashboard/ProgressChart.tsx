@@ -7,7 +7,7 @@ import {
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ChartDataPoint } from '@/lib/mock-data';
+import type { ChartDataPoint } from '@/types/dashboard';
 
 // ── Design System palette (matches CSS vars) ───────────────────
 const COLORS = {
