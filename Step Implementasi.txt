@@ -1,0 +1,267 @@
+Read all documents inside the /docs folder.
+
+The following files are the single source of truth:
+
+- 01-PRD.md
+- 02-UI_UX_SPEC.md
+- 03-DATABASE_SCHEMA.md
+- 04-API_SPEC.md
+- 05-DESIGN_SYSTEM.md
+- 06-TASKS.md
+- 07-ENGINEERING_RULES.md
+- 08-WIREFRAME_SPEC.md
+
+Do not generate any code yet.
+
+Your task:
+
+1. Analyze all requirements.
+2. Identify missing details, inconsistencies, or ambiguous requirements.
+3. Create a complete implementation plan.
+4. Propose a recommended project structure.
+5. Break down development tasks into logical phases.
+
+Output everything in markdown format.
+
+=======================
+
+Based on all project documentation and the implementation plan:
+
+Design the complete technical architecture.
+
+Include:
+
+- Next.js App Router structure
+- Component architecture
+- Service layer architecture
+- Authentication flow
+- Google Sheets integration strategy
+- Data fetching strategy
+- State management strategy
+- Error handling strategy
+- Deployment architecture
+
+Do not generate code yet.
+
+Output architecture documentation in markdown.
+
+=========================
+
+Review all files inside /docs and all visual references inside /assets.
+
+Visual references have higher priority than textual descriptions when determining layout and component placement.
+
+The final UI should closely match the provided wireframes while following the Design System and Engineering Rules.
+
+Do not redesign the application unless explicitly instructed.
+
+==========================
+
+Implement the Google Sheets integration layer.
+
+Requirements:
+
+- Google Sheets API client
+- Environment variable configuration
+- Type-safe data models
+- Data validation
+- Error handling
+- Service layer abstraction
+- Reusable utility functions
+
+Technology:
+
+- TypeScript
+- Next.js 15
+- Node.js
+
+Generate production-ready code.
+
+Include file structure and explanations.
+
+============================
+
+Implement the authentication system according to API_SPEC.md.
+
+Requirements:
+
+- Login using Student ID and Date of Birth
+- Validate against Google Sheets
+- Cookie-based session management
+- Protected routes
+- Middleware authentication
+- Logout functionality
+
+Use secure and production-ready practices.
+
+Generate all required code files.
+
+======================
+
+Implement the main application layout according to UI_UX_SPEC.md.
+
+Requirements:
+
+Sidebar:
+- Logo
+- Summary menu
+- Locked future menus
+- Logout section
+- Thank-you card
+
+Header:
+- Application title
+- Student profile card
+
+Main Content:
+- Responsive dashboard layout
+
+Tech Stack:
+
+- Tailwind CSS
+- shadcn/ui
+- Lucide React
+
+Use mock data only.
+
+Do not connect APIs yet.
+
+===========================
+
+Implement all dashboard components.
+
+Components:
+
+- KPI Cards
+- Progress Line Chart
+- Current Achievement Table
+- Teacher Notes Card
+- Next Target Table
+
+Requirements:
+
+- Fully responsive
+- Type-safe
+- Reusable components
+- Child-friendly design
+- Smooth loading states
+
+Use mock data.
+
+Use Recharts for charts.
+
+=======================
+
+Replace all mock data with real Google Sheets data.
+
+Requirements:
+
+- Use existing service layer
+- Maintain type safety
+- Add loading states
+- Add empty states
+- Add error states
+- Optimize performance
+
+Ensure all dashboard components consume real data.
+
+======================
+
+Review the entire application.
+
+Improve:
+
+- Mobile responsiveness
+- Tablet responsiveness
+- Touch-friendly interactions
+- Overflow issues
+- Layout consistency
+- Accessibility
+
+Apply all required code changes.
+
+======================
+
+Review the complete UI.
+
+Goal:
+
+Create a modern, fun, child-friendly experience inspired by:
+
+- Duolingo
+- Khan Academy Kids
+- Ruangguru
+
+Improve:
+
+- Colors
+- Typography
+- Spacing
+- Animations
+- Visual hierarchy
+- User engagement
+
+Do not modify business logic.
+Only improve UI and UX.
+
+===================
+
+Act as a Senior Software Engineer.
+
+Perform a complete project audit.
+
+Review:
+
+- TypeScript errors
+- Runtime errors
+- Security issues
+- Performance bottlenecks
+- Accessibility issues
+- Code duplication
+- Environment variables
+- Build issues
+- Deployment readiness
+
+Generate a report.
+
+Apply fixes where necessary.
+
+=====================
+
+Prepare the project for Vercel deployment.
+
+Requirements:
+
+- Environment variables configuration
+- Production build validation
+- Security review
+- Optimization review
+- Deployment instructions
+
+Generate:
+
+- .env.example
+- Deployment checklist
+- Post-deployment verification steps
+
+=======================
+
+Act as a Principal Engineer performing a code review.
+
+Review all code generated so far.
+
+Identify:
+
+- Bugs
+- Security vulnerabilities
+- Performance issues
+- Architecture issues
+- Code smells
+- Scalability concerns
+
+Refactor and improve the implementation.
+
+Explain every change before applying it.
+
+======================
+
