@@ -59,7 +59,18 @@ async function fetchAndValidateSheetData<T>(range: string, schema: z.ZodType<T>)
       const obj: Record<string, any> = {};
       headers.forEach((header, index) => {
         // Safe parsing: standardize header names to lowercase snake_case and handle empty cells
-        const key = header.toLowerCase().trim().replace(/ /g, '_');
+        let key = header.toLowerCase().trim().replace(/ /g, '_');
+        
+        // Handle common mapping aliases to align sheet data with Zod schema properties
+        if (key === 'progres_tilawah') key = 'progress_tilawah';
+        if (key === 'status_doa') key = 'status';
+        if (key === 'jenis_kelamin') key = 'gender';
+        
+        // Only map status -> status_santri for the Santri range to prevent conflicts
+        if (key === 'status' && range === 'Santri') {
+          key = 'status_santri';
+        }
+        
         obj[key] = row[index] || '';
       });
       return obj;
@@ -108,7 +119,7 @@ export const googleSheetsService = {
   },
 
   async getTahfizBySantri(id_santri: string): Promise<TahfizRow[]> {
-    const allTahfiz = await fetchAndValidateSheetData('Tahfiz', TahfizSchema);
+    const allTahfiz = await fetchAndValidateSheetData('Tahfizh', TahfizSchema);
     return allTahfiz.filter(t => t.id_santri === id_santri);
   },
 
@@ -123,13 +134,13 @@ export const googleSheetsService = {
   },
 
   async getCatatanGuruBySantri(id_santri: string): Promise<CatatanGuruRow[]> {
-    const allCatatan = await fetchAndValidateSheetData('CatatanGuru', CatatanGuruSchema);
+    const allCatatan = await fetchAndValidateSheetData('Catatan_Guru', CatatanGuruSchema);
     const studentCatatan = allCatatan.filter(c => c.id_santri === id_santri);
     return studentCatatan.sort((a, b) => new Date(b.tanggal_catatan).getTime() - new Date(a.tanggal_catatan).getTime());
   },
 
   async getTargetPencapaianBySantri(id_santri: string): Promise<TargetPencapaianRow[]> {
-    const allTargets = await fetchAndValidateSheetData('TargetPencapaian', TargetPencapaianSchema);
+    const allTargets = await fetchAndValidateSheetData('Target', TargetPencapaianSchema);
     return allTargets.filter(t => t.id_santri === id_santri);
   },
 };
