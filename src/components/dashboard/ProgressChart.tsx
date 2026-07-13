@@ -12,16 +12,20 @@ import type { ChartDataPoint } from '@/types/dashboard';
 // ── Design System palette (matches CSS vars) ───────────────────
 const COLORS = {
   kehadiran: '#3B82F6',
-  tilawah: '#10B981',
-  tahfiz: '#F59E0B',
-  adab: '#8B5CF6',
+  ziyadah: '#10B981',
+  murojaah: '#06B6D4',
+  tibyan: '#F59E0B',
+  tarbiyyah: '#8B5CF6',
+  adab: '#F43F5E',
 };
 
 const SERIES = [
   { key: 'kehadiran', name: 'Kehadiran', color: COLORS.kehadiran },
-  { key: 'tilawah', name: 'Tilawah', color: COLORS.tilawah },
-  { key: 'tahfiz', name: 'Tahfiz', color: COLORS.tahfiz },
-  { key: 'adab', name: 'Adab & Doa', color: COLORS.adab },
+  { key: 'ziyadah', name: 'Ziyadah', color: COLORS.ziyadah },
+  { key: 'murojaah', name: 'Murojaah', color: COLORS.murojaah },
+  { key: 'tibyan', name: 'Tibyan', color: COLORS.tibyan },
+  { key: 'tarbiyyah', name: 'Tarbiyyah', color: COLORS.tarbiyyah },
+  { key: 'adab', name: 'Adab Harian', color: COLORS.adab },
 ] as const;
 
 // ── Custom Tooltip ─────────────────────────────────────────────

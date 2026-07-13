@@ -1,25 +1,36 @@
 import { z } from 'zod';
 import {
   SantriSchema,
+  KelasSchema,
   KehadiranSchema,
-  TilawahSchema,
-  TahfizSchema,
-  DoaSchema,
-  AdabSchema,
-  CatatanGuruSchema,
-  TargetPencapaianSchema,
+  ZiyadahSchema,
+  MurojaahSchema,
+  TibyanSchema,
+  TarbiyyahSchema,
+  AdabHarianSchema,
+  LessonPlanMingguanSchema,
+  CatatanAnakSchema,
+  TugasRumahSchema,
+  ProgresMingguanSchema,
   type SantriRow,
+  type KelasRow,
   type KehadiranRow,
-  type TilawahRow,
-  type TahfizRow,
-  type DoaRow,
-  type AdabRow,
-  type CatatanGuruRow,
-  type TargetPencapaianRow,
+  type ZiyadahRow,
+  type MurojaahRow,
+  type TibyanRow,
+  type TarbiyyahRow,
+  type AdabHarianRow,
+  type LessonPlanMingguanRow,
+  type CatatanAnakRow,
+  type TugasRumahRow,
+  type ProgresMingguanRow,
 } from '@/types/database';
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
+
+// The actual tab in the spreadsheet has a trailing space in its name.
+const RANGE_PROGRES_MINGGUAN = 'Progres_Mingguan ';
 
 /**
  * Helper function to fetch data from a specific range/worksheet via REST API.
@@ -31,7 +42,7 @@ async function fetchAndValidateSheetData<T>(range: string, schema: z.ZodType<T>)
   }
 
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
 
     // Leverage Next.js fetch cache. Revalidate every 5 minutes (300 seconds)
     const response = await fetch(url, {
@@ -60,18 +71,13 @@ async function fetchAndValidateSheetData<T>(range: string, schema: z.ZodType<T>)
       headers.forEach((header, index) => {
         // Safe parsing: standardize header names to lowercase snake_case and handle empty cells
         let key = header.toLowerCase().trim().replace(/ /g, '_');
-        
-        // Handle common mapping aliases to align sheet data with Zod schema properties
-        if (key === 'progres_tilawah') key = 'progress_tilawah';
-        if (key === 'status_doa') key = 'status';
-        if (key === 'jenis_kelamin') key = 'gender';
-        
+
         // Only map status -> status_santri for the Santri range to prevent conflicts
         if (key === 'status' && range === 'Santri') {
           key = 'status_santri';
         }
-        
-        obj[key] = row[index] || '';
+
+        obj[key] = typeof row[index] === 'string' ? row[index].trim() : (row[index] || '');
       });
       return obj;
     });
@@ -108,39 +114,58 @@ export const googleSheetsService = {
     return allSantri.find(s => s.id_santri === id_santri) || null;
   },
 
+  async getKelasById(id_kelas: string): Promise<KelasRow | null> {
+    const allKelas = await fetchAndValidateSheetData('Kelas', KelasSchema);
+    return allKelas.find(k => k.id_kelas === id_kelas) || null;
+  },
+
   async getKehadiranBySantri(id_santri: string): Promise<KehadiranRow[]> {
     const allKehadiran = await fetchAndValidateSheetData('Kehadiran', KehadiranSchema);
     return allKehadiran.filter(k => k.id_santri === id_santri);
   },
 
-  async getTilawahBySantri(id_santri: string): Promise<TilawahRow[]> {
-    const allTilawah = await fetchAndValidateSheetData('Tilawah', TilawahSchema);
-    return allTilawah.filter(t => t.id_santri === id_santri);
+  async getZiyadahBySantri(id_santri: string): Promise<ZiyadahRow[]> {
+    const allZiyadah = await fetchAndValidateSheetData('Ziyadah', ZiyadahSchema);
+    return allZiyadah.filter(z => z.id_santri === id_santri);
   },
 
-  async getTahfizBySantri(id_santri: string): Promise<TahfizRow[]> {
-    const allTahfiz = await fetchAndValidateSheetData('Tahfizh', TahfizSchema);
-    return allTahfiz.filter(t => t.id_santri === id_santri);
+  async getMurojaahBySantri(id_santri: string): Promise<MurojaahRow[]> {
+    const allMurojaah = await fetchAndValidateSheetData('Murojaah', MurojaahSchema);
+    return allMurojaah.filter(m => m.id_santri === id_santri);
   },
 
-  async getDoaBySantri(id_santri: string): Promise<DoaRow[]> {
-    const allDoa = await fetchAndValidateSheetData('Doa', DoaSchema);
-    return allDoa.filter(d => d.id_santri === id_santri);
+  async getTibyanBySantri(id_santri: string): Promise<TibyanRow[]> {
+    const allTibyan = await fetchAndValidateSheetData('Tibyan', TibyanSchema);
+    return allTibyan.filter(t => t.id_santri === id_santri);
   },
 
-  async getAdabBySantri(id_santri: string): Promise<AdabRow[]> {
-    const allAdab = await fetchAndValidateSheetData('Adab', AdabSchema);
+  async getTarbiyyahBySantri(id_santri: string): Promise<TarbiyyahRow[]> {
+    const allTarbiyyah = await fetchAndValidateSheetData('Tarbiyyah', TarbiyyahSchema);
+    return allTarbiyyah.filter(t => t.id_santri === id_santri);
+  },
+
+  async getAdabHarianBySantri(id_santri: string): Promise<AdabHarianRow[]> {
+    const allAdab = await fetchAndValidateSheetData('Adab_Harian', AdabHarianSchema);
     return allAdab.filter(a => a.id_santri === id_santri);
   },
 
-  async getCatatanGuruBySantri(id_santri: string): Promise<CatatanGuruRow[]> {
-    const allCatatan = await fetchAndValidateSheetData('Catatan_Guru', CatatanGuruSchema);
-    const studentCatatan = allCatatan.filter(c => c.id_santri === id_santri);
-    return studentCatatan.sort((a, b) => new Date(b.tanggal_catatan).getTime() - new Date(a.tanggal_catatan).getTime());
+  async getLessonPlanByKelas(id_kelas: string): Promise<LessonPlanMingguanRow[]> {
+    const allPlans = await fetchAndValidateSheetData('Lesson_Plan_Mingguan', LessonPlanMingguanSchema);
+    return allPlans.filter(p => p.id_kelas === id_kelas);
   },
 
-  async getTargetPencapaianBySantri(id_santri: string): Promise<TargetPencapaianRow[]> {
-    const allTargets = await fetchAndValidateSheetData('Target', TargetPencapaianSchema);
-    return allTargets.filter(t => t.id_santri === id_santri);
+  async getCatatanAnakBySantri(id_santri: string): Promise<CatatanAnakRow[]> {
+    const allCatatan = await fetchAndValidateSheetData('Catatan_Anak', CatatanAnakSchema);
+    return allCatatan.filter(c => c.id_santri === id_santri);
+  },
+
+  async getTugasRumahBySantri(id_santri: string): Promise<TugasRumahRow[]> {
+    const allTugas = await fetchAndValidateSheetData('Tugas_Rumah', TugasRumahSchema);
+    return allTugas.filter(t => t.id_santri === id_santri);
+  },
+
+  async getProgresMingguanBySantri(id_santri: string): Promise<ProgresMingguanRow[]> {
+    const allProgres = await fetchAndValidateSheetData(RANGE_PROGRES_MINGGUAN, ProgresMingguanSchema);
+    return allProgres.filter(p => p.id_santri === id_santri);
   },
 };

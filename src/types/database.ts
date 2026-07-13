@@ -3,7 +3,9 @@ import { z } from 'zod';
 // Helper to safely parse strings to numbers and default to 0 if NaN/invalid
 const safeNumber = z.preprocess((val) => {
   if (typeof val === 'string') {
-    const parsed = parseFloat(val);
+    // Strip a trailing "%" so percentage-style cells (e.g. "25%") parse cleanly
+    const cleaned = val.replace('%', '').trim();
+    const parsed = parseFloat(cleaned);
     return isNaN(parsed) ? 0 : parsed;
   }
   if (typeof val === 'number') {
@@ -43,72 +45,134 @@ export const GuruSchema = z.object({
   created_at: z.string().optional(),
 });
 
+// ── v2 taxonomy ──────────────────────────────────────────────────
+
 export const KehadiranSchema = z.object({
   id_kehadiran: z.string(),
   id_santri: z.string(),
   id_kelas: z.string(),
-  tanggal_kehadiran: z.string(),
-  status_kehadiran: z.enum(['Hadir', 'Izin', 'Alpha', '']).catch(''),
+  tanggal: z.string(),
+  status: z.string().catch(''),
+  catatan: z.string().optional(),
+  created_by: z.string().optional(),
 });
 
-export const TilawahSchema = z.object({
-  id_tilawah: z.string(),
+export const ZiyadahSchema = z.object({
+  id_ziyadah: z.string(),
   id_santri: z.string(),
-  jenis_tilawah: z.string(), // IQRO or ALQURAN
-  materi_tilawah: z.string(),
-  progress_tilawah: safeNumber,
-  target_tilawah: safeNumber,
-  tanggal_tilawah: z.string(),
-  catatan_guru: z.string().optional(),
-  created_at: z.string().optional(),
-});
-
-export const TahfizSchema = z.object({
-  id_tahfizh: z.string(),
-  id_santri: z.string(),
+  id_kelas: z.string(),
   surat: z.string(),
-  ayat_selesai: safeNumber,
+  ayat_dari: safeNumber,
+  ayat_sampai: safeNumber,
+  progres_ayat: z.string().optional(), // stored as a percentage string, e.g. "25%"
   target_ayat: safeNumber,
-  tanggal_tahfizh: z.string(),
+  tanggal: z.string(),
   catatan_guru: z.string().optional(),
+  created_by: z.string().optional(),
 });
 
-export const DoaSchema = z.object({
-  id_doa: z.string(),
+export const MurojaahSchema = z.object({
+  id_murojaah: z.string(),
   id_santri: z.string(),
-  nama_doa: z.string(),
-  status: z.string(),
+  id_kelas: z.string(),
+  surat_diulang: z.string(),
+  status_kelancaran: z.string(), // Lancar / Cukup Lancar / Perlu Diulang
+  tanggal: z.string(),
+  catatan_guru: z.string().optional(),
+  created_by: z.string().optional(),
 });
 
-export const AdabSchema = z.object({
+export const TibyanSchema = z.object({
+  id_tibyan: z.string(),
+  id_santri: z.string(),
+  id_kelas: z.string(),
+  materi_huruf: z.string().optional(),
+  progres: safeNumber,
+  target: safeNumber,
+  tanggal: z.string(),
+  catatan_guru: z.string().optional(),
+  created_by: z.string().optional(),
+});
+
+export const TarbiyyahSchema = z.object({
+  id_tarbiyyah: z.string(),
+  id_santri: z.string(),
+  id_kelas: z.string(),
+  tema: z.string().optional(),
+  status_capaian: z.string().optional(),
+  tanggal: z.string(),
+  catatan_guru: z.string().optional(),
+  created_by: z.string().optional(),
+});
+
+export const AdabHarianSchema = z.object({
   id_adab: z.string(),
   id_santri: z.string(),
+  id_kelas: z.string(),
   kategori: z.string(),
   nilai: safeNumber,
   catatan_guru: z.string().optional(),
-  tanggal_adab: z.string(),
+  tanggal: z.string(),
+  created_by: z.string().optional(),
 });
 
-export const CatatanGuruSchema = z.object({
-  id_catatan_guru: z.string(),
-  id_santri: z.string(),
-  id_guru: z.string(),
-  tanggal_catatan: z.string(),
-  catatan: z.string(),
-});
-
-export const TargetPencapaianSchema = z.object({
-  id_santri: z.string(),
+export const LessonPlanMingguanSchema = z.object({
+  id_lesson_plan: z.string(),
+  id_kelas: z.string(),
+  minggu_ke: safeNumber,
+  tanggal_mulai: z.string(),
+  tanggal_selesai: z.string(),
+  tema_minggu: z.string().optional(),
+  hari: z.string(),
   kategori: z.string(),
-  target: z.string(),
-  deadline: z.string(),
+  materi: z.string().optional(),
+  created_by: z.string().optional(),
+});
+
+export const CatatanAnakSchema = z.object({
+  id_catatan: z.string(),
+  id_santri: z.string(),
+  id_kelas: z.string(),
+  id_guru: z.string().optional(),
+  tanggal: z.string(),
+  isi_catatan: z.string(),
+  created_by: z.string().optional(),
+});
+
+export const TugasRumahSchema = z.object({
+  id_tugas: z.string(),
+  id_santri: z.string(),
+  id_kelas: z.string(),
+  minggu_ke: safeNumber,
+  deskripsi_tugas: z.string(),
+  status: z.string(), // "Belum" / "Selesai" — normalized case-insensitively where used
+  tanggal_dibuat: z.string().optional(),
+  created_by: z.string().optional(),
+});
+
+export const ProgresMingguanSchema = z.object({
+  id_progres: z.string(),
+  id_santri: z.string(),
+  minggu_ke: safeNumber,
+  tanggal: z.string(),
+  kehadiran_pct: safeNumber,
+  ziyadah_pct: safeNumber,
+  murojaah_pct: safeNumber,
+  tibyan_pct: safeNumber,
+  tarbiyyah_pct: safeNumber,
+  adab_pct: safeNumber,
 });
 
 export type SantriRow = z.infer<typeof SantriSchema>;
+export type KelasRow = z.infer<typeof KelasSchema>;
+export type GuruRow = z.infer<typeof GuruSchema>;
 export type KehadiranRow = z.infer<typeof KehadiranSchema>;
-export type TilawahRow = z.infer<typeof TilawahSchema>;
-export type TahfizRow = z.infer<typeof TahfizSchema>;
-export type DoaRow = z.infer<typeof DoaSchema>;
-export type AdabRow = z.infer<typeof AdabSchema>;
-export type CatatanGuruRow = z.infer<typeof CatatanGuruSchema>;
-export type TargetPencapaianRow = z.infer<typeof TargetPencapaianSchema>;
+export type ZiyadahRow = z.infer<typeof ZiyadahSchema>;
+export type MurojaahRow = z.infer<typeof MurojaahSchema>;
+export type TibyanRow = z.infer<typeof TibyanSchema>;
+export type TarbiyyahRow = z.infer<typeof TarbiyyahSchema>;
+export type AdabHarianRow = z.infer<typeof AdabHarianSchema>;
+export type LessonPlanMingguanRow = z.infer<typeof LessonPlanMingguanSchema>;
+export type CatatanAnakRow = z.infer<typeof CatatanAnakSchema>;
+export type TugasRumahRow = z.infer<typeof TugasRumahSchema>;
+export type ProgresMingguanRow = z.infer<typeof ProgresMingguanSchema>;

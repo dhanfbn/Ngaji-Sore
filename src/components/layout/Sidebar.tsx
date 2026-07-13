@@ -6,9 +6,10 @@ import {
   Home,
   CalendarDays,
   BookOpen,
-  Star,
+  RotateCcw,
+  Type,
+  GraduationCap,
   HeartHandshake,
-  FileText,
   LogOut,
   Lock,
   Menu
@@ -17,13 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'; // Required for accessibility if Title is hidden
 
+// v2 scope: only Ringkasan + Kehadiran are active; the other 5 KPI categories
+// render locked until their detail pages are built.
 const navItems = [
   { name: 'Ringkasan', icon: Home, href: '/dashboard', locked: false },
   { name: 'Kehadiran', icon: CalendarDays, href: '#', locked: true },
-  { name: 'Tilawah', icon: BookOpen, href: '#', locked: true },
-  { name: 'Hafalan', icon: Star, href: '#', locked: true },
-  { name: 'Adab & Sikap', icon: HeartHandshake, href: '#', locked: true },
-  { name: 'Catatan Guru', icon: FileText, href: '#', locked: true },
+  { name: 'Ziyadah', icon: BookOpen, href: '#', locked: true },
+  { name: 'Murojaah', icon: RotateCcw, href: '#', locked: true },
+  { name: 'Tibyan', icon: Type, href: '#', locked: true },
+  { name: 'Tarbiyyah', icon: GraduationCap, href: '#', locked: true },
+  { name: 'Adab Harian', icon: HeartHandshake, href: '#', locked: true },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

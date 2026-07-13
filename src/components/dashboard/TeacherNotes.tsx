@@ -1,9 +1,9 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { CatatanGuruRow } from '@/types/database';
+import type { CatatanAnakRow } from '@/types/database';
 
 // ── Note entry ─────────────────────────────────────────────────
-function NoteEntry({ note, index }: { note: CatatanGuruRow; index: number }) {
+function NoteEntry({ note, index }: { note: CatatanAnakRow; index: number }) {
   // Alternate soft background colours for visual variety
   const bgs = ['bg-yellow-50 border-yellow-200', 'bg-sky-50 border-sky-200', 'bg-violet-50 border-violet-200'];
   const pins = ['📌', '📍', '🔖'];
@@ -22,12 +22,12 @@ function NoteEntry({ note, index }: { note: CatatanGuruRow; index: number }) {
 
       {/* Date badge */}
       <p className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 bg-white/70 border border-slate-200 px-2.5 py-1 rounded-full mb-3">
-        <span aria-hidden="true">📅</span> {note.tanggal_catatan}
+        <span aria-hidden="true">📅</span> {note.tanggal}
       </p>
 
       {/* Note text */}
       <p className="text-sm text-foreground leading-relaxed">
-        &ldquo;{note.catatan}&rdquo;
+        &ldquo;{note.isi_catatan}&rdquo;
       </p>
     </article>
   );
@@ -35,7 +35,7 @@ function NoteEntry({ note, index }: { note: CatatanGuruRow; index: number }) {
 
 // ── Component ──────────────────────────────────────────────────
 interface TeacherNotesProps {
-  notes: CatatanGuruRow[];
+  notes: CatatanAnakRow[];
 }
 
 export function TeacherNotes({ notes }: TeacherNotesProps) {

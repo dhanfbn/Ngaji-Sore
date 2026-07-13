@@ -1,7 +1,8 @@
 import { KPICardSkeleton } from '@/components/dashboard/KPICard';
 import { ProgressChartSkeleton } from '@/components/dashboard/ProgressChart';
-import { AchievementTableSkeleton } from '@/components/dashboard/AchievementTable';
 import { TeacherNotesSkeleton } from '@/components/dashboard/TeacherNotes';
+import { LessonPlanCardSkeleton } from '@/components/dashboard/LessonPlan';
+import { HomeworkListSkeleton } from '@/components/dashboard/HomeworkList';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLoading() {
@@ -14,8 +15,8 @@ export default function DashboardLoading() {
       </div>
 
       {/* KPI skeletons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
           <KPICardSkeleton key={i} />
         ))}
       </div>
@@ -30,10 +31,10 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      {/* Table skeletons */}
+      {/* Lesson plan + homework skeletons */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <AchievementTableSkeleton />
-        <AchievementTableSkeleton />
+        <LessonPlanCardSkeleton />
+        <HomeworkListSkeleton />
       </div>
     </div>
   );

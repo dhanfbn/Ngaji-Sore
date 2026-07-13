@@ -1,20 +1,35 @@
-export interface KPIDetail {
-  pct: number;
+export interface KPIEntry {
+  key: string;
   label: string;
+  value: number;
+  unit: '%';
   detail: string;
-}
-
-export interface KPIData {
-  kehadiran: KPIDetail;
-  tilawah: KPIDetail;
-  tahfiz: KPIDetail;
-  adab: KPIDetail;
+  badge: string;
+  locked: boolean;
 }
 
 export interface ChartDataPoint {
   week: string;
   kehadiran: number;
-  tilawah: number;
-  tahfiz: number;
+  ziyadah: number;
+  murojaah: number;
+  tibyan: number;
+  tarbiyyah: number;
   adab: number;
+}
+
+export interface LessonPlanDay {
+  hari: string;
+  kategori: string;
+  materi: string;
+}
+
+export interface LessonPlanData {
+  tema?: string;
+  hari: LessonPlanDay[];
+}
+
+export interface HomeworkItem {
+  deskripsi: string;
+  status: 'belum' | 'selesai';
 }
