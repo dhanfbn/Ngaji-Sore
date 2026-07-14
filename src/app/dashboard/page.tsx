@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { CalendarDays, BookOpen, RotateCcw, Type, GraduationCap, HeartHandshake, LucideIcon } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ProgressChart } from '@/components/dashboard/ProgressChart';
-import { TeacherNotes } from '@/components/dashboard/TeacherNotes';
+import { CatatanAnakCard } from '@/components/dashboard/CatatanAnakCard';
 import { LessonPlanCard } from '@/components/dashboard/LessonPlan';
 import { HomeworkList } from '@/components/dashboard/HomeworkList';
 import { getDashboardData } from '@/services/dashboard.service';
@@ -64,25 +64,20 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Chart + Teacher Notes ─────────────────────────────── */}
-      <section aria-label="Grafik perkembangan dan catatan guru">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Chart: 2 cols on lg */}
-          <div className="lg:col-span-2 min-h-[380px]">
+      {/* ── Chart / Lesson Plan / Catatan Anak & Tugas di Rumah ── */}
+      {/* Equal 1/3-width columns, stretched to the same row height on lg+ */}
+      <section aria-label="Grafik perkembangan, lesson plan, catatan anak, dan tugas di rumah">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:items-stretch">
+          <div className="min-h-[380px]">
             <ProgressChart data={chartData} />
           </div>
-          {/* Teacher Notes: 1 col on lg, max-height to match chart */}
-          <div className="max-h-[420px] lg:max-h-none">
-            <TeacherNotes notes={notes} />
+          <div>
+            <LessonPlanCard tema={lessonPlan.tema} hari={lessonPlan.hari} />
           </div>
-        </div>
-      </section>
-
-      {/* ── Lesson Plan + Tugas Rumah ──────────────────────────── */}
-      <section aria-label="Lesson plan mingguan dan tugas di rumah">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <LessonPlanCard tema={lessonPlan.tema} hari={lessonPlan.hari} />
-          <HomeworkList data={homework} />
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <CatatanAnakCard notes={notes} />
+            <HomeworkList data={homework} />
+          </div>
         </div>
       </section>
 

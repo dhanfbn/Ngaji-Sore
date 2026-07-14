@@ -2,7 +2,7 @@ import { googleSheetsService } from './googleSheets.service';
 import { parseFlexibleDate } from '@/lib/date';
 import { getBadgeLabel } from '@/lib/kpi';
 import type { KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem } from '@/types/dashboard';
-import type { CatatanAnakRow } from '@/types/database';
+import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
 
 export interface DashboardData {
   kpi: KPIEntry[];
@@ -13,7 +13,15 @@ export interface DashboardData {
   studentName: string;
 }
 
+export interface HeaderInfo {
+  studentName: string;
+  kelasNama: string;
+  periode: string;
+  semester: string;
+}
+
 const HARI_ORDER = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad', 'Minggu'];
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 function sortByDateDesc<T>(rows: T[], getDate: (row: T) => string): T[] {
   return [...rows].sort((a, b) => {
@@ -25,6 +33,31 @@ function sortByDateDesc<T>(rows: T[], getDate: (row: T) => string): T[] {
 
 function makeKPI(key: string, label: string, value: number, detail: string): KPIEntry {
   return { key, label, value, unit: '%', detail, badge: getBadgeLabel(value), locked: false };
+}
+
+/** Finds the Lesson_Plan_Mingguan row whose date range covers today, if the guru has filled it in. */
+function findCurrentWeekPlan(lessonPlans: LessonPlanMingguanRow[], today: Date): LessonPlanMingguanRow | undefined {
+  return lessonPlans.find(p => {
+    const start = parseFlexibleDate(p.tanggal_mulai);
+    const end = parseFlexibleDate(p.tanggal_selesai);
+    return start && end && today >= start && today <= end;
+  });
+}
+
+function formatPeriodeRange(start: Date, end: Date): string {
+  const d1 = start.getDate(), d2 = end.getDate();
+  const m1 = BULAN[start.getMonth()], m2 = BULAN[end.getMonth()];
+  const y1 = start.getFullYear(), y2 = end.getFullYear();
+  if (y1 === y2 && m1 === m2) return `${d1} – ${d2} ${m1} ${y1}`;
+  if (y1 === y2) return `${d1} ${m1} – ${d2} ${m2} ${y1}`;
+  return `${d1} ${m1} ${y1} – ${d2} ${m2} ${y2}`;
+}
+
+/** Indonesian school calendar convention: Ganjil = Jul–Dec, Genap = Jan–Jun. */
+function getSemesterLabel(today: Date): string {
+  const month = today.getMonth() + 1;
+  const year = today.getFullYear();
+  return month >= 7 ? `Ganjil ${year}/${year + 1}` : `Genap ${year - 1}/${year}`;
 }
 
 export async function getDashboardData(id_santri: string): Promise<DashboardData> {
@@ -89,11 +122,7 @@ export async function getDashboardData(id_santri: string): Promise<DashboardData
 
   // --- Lesson plan for the current week, with a mandatory fallback when unfilled ---
   const today = new Date();
-  const currentWeekRow = lessonPlans.find(p => {
-    const start = parseFlexibleDate(p.tanggal_mulai);
-    const end = parseFlexibleDate(p.tanggal_selesai);
-    return start && end && today >= start && today <= end;
-  });
+  const currentWeekRow = findCurrentWeekPlan(lessonPlans, today);
 
   const lessonPlan: LessonPlanData = currentWeekRow
     ? {
@@ -121,5 +150,26 @@ export async function getDashboardData(id_santri: string): Promise<DashboardData
     notes,
     homework,
     studentName: santri?.nama || 'Santri',
+  };
+}
+
+export async function getHeaderInfo(id_santri: string): Promise<HeaderInfo> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+  const [kelas, lessonPlans] = await Promise.all([
+    santri?.id_kelas ? googleSheetsService.getKelasById(santri.id_kelas) : null,
+    santri?.id_kelas ? googleSheetsService.getLessonPlanByKelas(santri.id_kelas) : Promise.resolve([]),
+  ]);
+
+  const today = new Date();
+  const currentWeekRow = findCurrentWeekPlan(lessonPlans, today);
+  const periode = currentWeekRow
+    ? formatPeriodeRange(parseFlexibleDate(currentWeekRow.tanggal_mulai)!, parseFlexibleDate(currentWeekRow.tanggal_selesai)!)
+    : 'Belum tersedia';
+
+  return {
+    studentName: santri?.nama || 'Santri',
+    kelasNama: kelas?.nama_kelas || santri?.id_kelas || '-',
+    periode,
+    semester: getSemesterLabel(today),
   };
 }

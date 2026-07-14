@@ -1,6 +1,6 @@
 import { KPICardSkeleton } from '@/components/dashboard/KPICard';
 import { ProgressChartSkeleton } from '@/components/dashboard/ProgressChart';
-import { TeacherNotesSkeleton } from '@/components/dashboard/TeacherNotes';
+import { CatatanAnakCardSkeleton } from '@/components/dashboard/CatatanAnakCard';
 import { LessonPlanCardSkeleton } from '@/components/dashboard/LessonPlan';
 import { HomeworkListSkeleton } from '@/components/dashboard/HomeworkList';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,20 +21,18 @@ export default function DashboardLoading() {
         ))}
       </div>
 
-      {/* Chart + Notes skeletons */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* Chart / Lesson Plan / Catatan Anak / Tugas di Rumah skeletons */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="lg:col-span-2 min-h-[380px]">
           <ProgressChartSkeleton />
         </div>
         <div>
-          <TeacherNotesSkeleton />
+          <LessonPlanCardSkeleton />
         </div>
-      </div>
-
-      {/* Lesson plan + homework skeletons */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <LessonPlanCardSkeleton />
-        <HomeworkListSkeleton />
+        <div className="flex flex-col gap-4 sm:gap-6">
+          <CatatanAnakCardSkeleton />
+          <HomeworkListSkeleton />
+        </div>
       </div>
     </div>
   );

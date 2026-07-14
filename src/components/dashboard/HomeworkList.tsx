@@ -1,6 +1,6 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { House, CheckCircle2, Circle } from 'lucide-react';
 import type { HomeworkItem } from '@/types/dashboard';
 
 interface HomeworkListProps {
@@ -10,35 +10,28 @@ interface HomeworkListProps {
 // ── Component ──────────────────────────────────────────────────
 export function HomeworkList({ data }: HomeworkListProps) {
   return (
-    <Card className="h-full card-3d overflow-hidden flex flex-col bg-white">
-      <CardHeader className="pb-3 pt-5 px-5 sm:px-6 border-b border-slate-100">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-foreground">
-          <span aria-hidden="true">✅</span>
-          Tugas di Rumah
-        </CardTitle>
-      </CardHeader>
+    <Card className="flex-1 flex flex-col card-3d overflow-hidden bg-white">
+      <CardContent className="flex-1 flex flex-col p-5 sm:p-6">
+        <div className="inline-flex items-center gap-2 bg-emerald-500 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
+          <span className="w-6 h-6 rounded-full bg-white text-emerald-500 flex items-center justify-center shrink-0">
+            <House className="w-3.5 h-3.5" aria-hidden="true" fill="currentColor" />
+          </span>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-white">Tugas di Rumah</span>
+        </div>
 
-      <CardContent className="flex-1 px-4 sm:px-5 py-4">
         {data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
             <span className="text-4xl opacity-80" aria-hidden="true">🍃</span>
             <p className="text-sm font-semibold text-slate-400">Belum ada tugas rumah dari guru</p>
           </div>
         ) : (
           <ul className="space-y-2.5">
             {data.map((item, i) => (
-              <li
-                key={i}
-                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-                  item.status === 'selesai'
-                    ? 'border-emerald-100 bg-emerald-50/50'
-                    : 'border-slate-100 bg-slate-50/50'
-                }`}
-              >
+              <li key={i} className="flex items-center gap-2.5">
                 {item.status === 'selesai' ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" aria-label="Selesai" />
                 ) : (
-                  <Circle className="w-5 h-5 text-slate-300 shrink-0" aria-label="Belum selesai" />
+                  <Circle className="w-5 h-5 text-emerald-300 shrink-0" aria-label="Belum selesai" />
                 )}
                 <span className={`text-sm ${item.status === 'selesai' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                   {item.deskripsi}
@@ -55,14 +48,14 @@ export function HomeworkList({ data }: HomeworkListProps) {
 // ── Skeleton ───────────────────────────────────────────────────
 export function HomeworkListSkeleton() {
   return (
-    <Card className="h-full card-3d overflow-hidden bg-white">
-      <CardHeader className="pb-3 pt-5 px-6 border-b border-slate-100">
-        <Skeleton className="h-6 w-40 rounded-full" />
-      </CardHeader>
-      <CardContent className="px-5 py-4 space-y-2.5">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-2xl" />
-        ))}
+    <Card className="card-3d overflow-hidden bg-white">
+      <CardContent className="p-5 sm:p-6">
+        <Skeleton className="h-7 w-40 rounded-full mb-4" />
+        <div className="space-y-2.5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-5 w-full rounded" />
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

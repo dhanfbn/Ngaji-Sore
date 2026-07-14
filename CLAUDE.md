@@ -32,6 +32,15 @@ orang tua/wali murid. Stakeholder: santri, wali murid, guru.
 - Sidebar: hanya 2 menu aktif — **Ringkasan** dan **Kehadiran**. Menu lain
   (Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian) tampil **locked/disabled**
   (ikon gembok), tidak ada halaman detailnya di v2
+  - **Update (diputuskan saat development)**: ini berlaku untuk *navigasi
+    sidebar* saja. Ke-6 KPI card di halaman Ringkasan sendiri **semua
+    menampilkan data asli/live** (bukan 5 di antaranya locked/placeholder
+    seperti contoh JSON awal di bawah) — diputuskan langsung oleh product
+    owner di tengah sesi, bukan scope creep. Yang tetap locked hanya
+    *link sidebar* ke halaman detail 5 kategori tsb, karena halaman
+    detailnya memang tidak dibuat di v2. Kehadiran juga masih locked di
+    sidebar untuk saat ini karena halaman `/dashboard/kehadiran` belum
+    dibuat (lihat "Status Implementasi").
 - Rebuild skema Google Sheets sesuai taksonomi KPI baru (lihat bagian Data Model)
 - Rebuild seluruh komponen UI KPI, chart progres, lesson plan, catatan anak,
   tugas rumah — sesuai sketsa UI yang sudah didiskusikan
@@ -105,11 +114,21 @@ id_tugas | id_santri | id_kelas | minggu_ke | deskripsi_tugas | status (belum/se
 ```
 id_progres | id_santri | minggu_ke | tanggal | kehadiran_pct | ziyadah_pct | murojaah_pct | tibyan_pct | tarbiyyah_pct | adab_pct
 ```
+- Ini juga sumber persen **KPI card saat ini** untuk 5 kategori selain
+  Kehadiran (ambil baris `minggu_ke` terbesar). Kehadiran tetap dihitung
+  live dari raw `Kehadiran` (hadir/total pertemuan) karena rumusnya simpel
+  dan selalu akurat tanpa perlu input manual guru.
 
 **Known data quality issues yang harus di-fix saat rebuild sheet (dari file lama):**
 - ID kolisi: `Tahfizh` dan `Doa` sheet lama sama-sama pakai prefix `HFZ00x` — jangan diwariskan ke sheet baru
 - Sheet `Adab` lama: kolom `kategori` isinya angka (harusnya teks), `nilai` terpisah — sudah di-fix di skema `Adab_Harian` baru di atas
 - Sheet `Target` lama: ada baris data nyasar tanpa header di bagian bawah — jangan ikut ter-copy saat migrasi
+
+**Ditemukan saat development sheet v2 yang sekarang dipakai (belum tentu berlaku ke instance sheet lain, tapi kode sudah defensif terhadap ini):**
+- Banyak sel string di seluruh sheet punya leading/trailing whitespace (mis. `" STD0001 "`) — `googleSheets.service.ts` sudah trim semua nilai sel saat parsing. Jangan asumsikan data mentah sudah bersih kalau nambah field baru.
+- Format tanggal **tidak konsisten** antar tab: `Kehadiran`/`Ziyadah`/`Murojaah`/`Adab_Harian`/`Catatan_Anak` pakai `YYYY-MM-DD`, sedangkan `Tibyan`/`Tarbiyyah`/`Tugas_Rumah`/`Lesson_Plan_Mingguan`/`Progres_Mingguan` pakai `DD/MM/YYYY`. Selalu parse tanggal lewat `parseFlexibleDate()` di `src/lib/date.ts`, jangan `new Date(str)` langsung — itu salah-parse `DD/MM/YYYY`.
+- Tab `Progres_Mingguan` di spreadsheet asli punya **trailing space** di nama tab (`"Progres_Mingguan "`). Sudah di-hardcode di `googleSheets.service.ts` (`RANGE_PROGRES_MINGGUAN`) — kalau sheet-nya di-rename/dibuat ulang tanpa spasi, update konstanta itu juga.
+- `Ziyadah.progres_ayat` diisi guru sebagai string persentase (mis. `"25%"`), bukan hitungan ayat — jangan dipakai untuk hitung ulang persen KPI, itu sebabnya sumber persen KPI Ziyadah tetap dari `Progres_Mingguan` (lihat di atas).
 
 ## Badge KPI — Threshold (locked, pakai `>` konsisten di semua batas)
 
@@ -168,6 +187,38 @@ Satu-satunya halaman detail selain Ringkasan (sesuai sidebar yang cuma 2 menu ak
 - **Lesson Plan Mingguan**: per hari (Senin-Jumat), kategori + materi
 - **Catatan Anak**: catatan naratif dari guru
 - **Tugas di Rumah**: checklist tugas
+
+## Status Implementasi (update per sesi terakhir)
+
+**Sudah dibangun:**
+- Halaman Ringkasan (`/dashboard`) versi v2 lengkap: 6 KPI card (compact,
+  semua live data — lihat catatan di "Scope v2"), grafik Perkembangan 4
+  Minggu (6 kategori), Lesson Plan Mingguan (posisi tengah, badge warna per
+  hari + ikon kategori, fallback state kalau guru belum isi), Catatan Anak
+  (nampilkan catatan terbaru saja, bukan list), Tugas di Rumah (checklist).
+  Chart / Lesson Plan / Catatan+Tugas disusun 3 kolom sama lebar & sama tinggi.
+- Header profil santri (nama, kelas, periode, semester) — kelas & periode
+  diambil live dari sheet `Kelas` dan `Lesson_Plan_Mingguan` (bukan field
+  statis), semester dihitung dari tanggal hari ini (konvensi kalender
+  sekolah: Ganjil = Jul–Des, Genap = Jan–Jun). Versi mobile: avatar
+  expand/collapse, bukan cuma avatar diam.
+- Data/service layer penuh untuk taksonomi v2 (`src/types/database.ts`,
+  `src/services/googleSheets.service.ts`, `src/services/dashboard.service.ts`)
+  sudah reusable untuk konsumen lain (termasuk API routes kalau dibuat nanti).
+
+**BELUM dibangun / deviasi dari kontrak di atas — penting buat sesi lanjutan:**
+- **API routes `/api/v1/...` di atas belum ada sama sekali.** Implementasi
+  saat ini memanggil `dashboard.service.ts` **langsung dari Server Component**
+  (`app/dashboard/page.tsx`, `app/dashboard/layout.tsx`), bukan lewat HTTP
+  endpoint. Service layer-nya sudah dalam bentuk yang gampang dibungkus jadi
+  route handler kalau/waktu Fase 3 (mobile) butuh endpoint asli — tinggal
+  buat `app/api/v1/santri/[id]/ringkasan/route.ts` dkk yang manggil fungsi
+  yang sama.
+- Rate limiting login (max 5 percobaan/15 menit) **belum diimplementasi** —
+  `app/api/login/route.ts` saat ini cuma cek `id_santri` + `tanggal_lahir`
+  tanpa batas percobaan. Ini WAJIB masuk v2 menurut scope di atas, belum selesai.
+- Halaman detail `/dashboard/kehadiran` belum dibuat, jadi Kehadiran masih
+  tampil locked di sidebar walau KPI card-nya sudah live.
 
 ## Prinsip Kerja untuk Sesi Ini
 

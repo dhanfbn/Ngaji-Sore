@@ -1,20 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Menu } from 'lucide-react';
+import { User, Menu, Calendar, BookOpen, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarContent } from '@/components/layout/Sidebar';
 
-export function Header({ 
-  studentName = 'Aisyah Putri', 
-  studentClass = 'Kelas Anak', 
-  studentPeriod = 'Periode: 1 – 31 Mei 2024' 
-}: { 
-  studentName?: string; 
-  studentClass?: string; 
-  studentPeriod?: string; 
-}) {
+interface HeaderProps {
+  studentName?: string;
+  kelasNama?: string;
+  periode?: string;
+  semester?: string;
+}
+
+function ProfileFields({ studentName, kelasNama, periode, semester }: Required<HeaderProps>) {
+  return (
+    <>
+      <p className="text-xs text-slate-600">
+        <span className="font-bold text-slate-800">Nama Anak</span> : {studentName}
+      </p>
+      <p className="text-xs text-slate-600 flex items-center gap-2">
+        <span className="font-bold text-slate-800">Kelas</span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+          {kelasNama}
+        </span>
+      </p>
+      <p className="text-xs text-slate-600 flex items-center gap-1.5">
+        <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
+        <span className="font-bold text-slate-800">Periode</span> : {periode}
+      </p>
+      <p className="text-xs text-slate-600 flex items-center gap-1.5">
+        <BookOpen className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
+        <span className="font-bold text-slate-800">Semester</span> : {semester}
+      </p>
+    </>
+  );
+}
+
+export function Header({
+  studentName = 'Aisyah Putri',
+  kelasNama = 'Kelas Anak',
+  periode = 'Belum tersedia',
+  semester = '-',
+}: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   return (
     <header className="h-[80px] md:h-[100px] flex items-center justify-between px-4 md:px-8 bg-white border-b border-border sticky top-0 z-10 shrink-0 shadow-sm">
@@ -52,40 +81,33 @@ export function Header({
 
       {/* Right Section: Profile Card */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Desktop Full Profile Card */}
-        <div 
-          className="hidden lg:flex items-center bg-slate-50 border-2 border-slate-100 rounded-2xl p-2.5 pr-4 shadow-sm min-w-[300px] cursor-pointer hover:bg-slate-100 transition-colors"
-          role="button"
-          tabIndex={0}
-          aria-label="Lihat profil santri"
-        >
-          <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center mr-3 shrink-0 border-2 border-blue-200">
-            <User className="w-6 h-6" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-slate-800 text-[15px] leading-none mb-1.5 truncate">
-              {studentName}
-            </h3>
-            <div className="flex flex-col gap-0.5">
-              <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                <span aria-hidden="true">🧑‍🤝‍🧑</span> {studentClass}
-              </p>
-              <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                <span aria-hidden="true">📅</span> {studentPeriod}
-              </p>
-            </div>
-          </div>
+        {/* Desktop: full profile details, always expanded */}
+        <div className="hidden lg:grid grid-cols-2 gap-x-6 gap-y-1.5 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 shadow-sm min-w-[340px]">
+          <ProfileFields studentName={studentName} kelasNama={kelasNama} periode={periode} semester={semester} />
         </div>
 
-        {/* Mobile/Tablet: Avatar only */}
-        <button 
-          className="flex lg:hidden btn-3d"
-          aria-label="Lihat profil santri"
-        >
-          <div className="w-10 h-10 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center border-2 border-blue-200">
-            <User className="w-5 h-5" aria-hidden="true" />
-          </div>
-        </button>
+        {/* Mobile/Tablet: avatar toggles an expand/collapse panel */}
+        <div className="lg:hidden relative">
+          <button
+            className="btn-3d flex items-center gap-1"
+            aria-label="Lihat profil santri"
+            aria-expanded={profileOpen}
+            onClick={() => setProfileOpen(o => !o)}
+          >
+            <div className="w-10 h-10 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center border-2 border-blue-200">
+              <User className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${profileOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[260px] bg-white border-2 border-slate-100 rounded-2xl shadow-lg p-4 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-2">
+                <ProfileFields studentName={studentName} kelasNama={kelasNama} periode={periode} semester={semester} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
