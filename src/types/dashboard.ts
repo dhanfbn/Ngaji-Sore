@@ -33,3 +33,10 @@ export interface HomeworkItem {
   deskripsi: string;
   status: 'belum' | 'selesai';
 }
+
+export interface WeekOption {
+  /** e.g. "2026-W29" */
+  key: string;
+  /** e.g. "13 – 17 Jul 2026" */
+  label: string;
+}

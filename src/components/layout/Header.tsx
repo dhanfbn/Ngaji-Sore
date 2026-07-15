@@ -1,19 +1,48 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { User, Menu, Calendar, BookOpen, ChevronDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarContent } from '@/components/layout/Sidebar';
+import type { WeekOption } from '@/types/dashboard';
 
 interface HeaderProps {
   studentName?: string;
   kelasNama?: string;
   kelasId?: string;
-  periode?: string;
+  weeks?: WeekOption[];
+  defaultWeek?: string;
   semester?: string;
 }
 
-function ProfileFields({ studentName, kelasNama, periode, semester }: Required<Pick<HeaderProps, 'studentName' | 'kelasNama' | 'periode' | 'semester'>>) {
+function PeriodeSelect({ weeks, selectedWeek, onChange }: { weeks: WeekOption[]; selectedWeek: string; onChange: (key: string) => void }) {
+  if (weeks.length === 0) {
+    return <span>Belum tersedia</span>;
+  }
+
+  return (
+    <select
+      value={selectedWeek}
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-transparent font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-green/40 rounded cursor-pointer -ml-0.5"
+      aria-label="Pilih minggu"
+    >
+      {weeks.map(w => (
+        <option key={w.key} value={w.key}>{w.label}</option>
+      ))}
+    </select>
+  );
+}
+
+function ProfileFields({ studentName, kelasNama, semester, weeks, selectedWeek, onWeekChange }: {
+  studentName: string;
+  kelasNama: string;
+  semester: string;
+  weeks: WeekOption[];
+  selectedWeek: string;
+  onWeekChange: (key: string) => void;
+}) {
   return (
     <>
       <p className="text-xs text-slate-600">
@@ -27,7 +56,7 @@ function ProfileFields({ studentName, kelasNama, periode, semester }: Required<P
       </p>
       <p className="text-xs text-slate-600 flex items-center gap-1.5">
         <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
-        <span className="font-bold text-slate-800">Periode</span> : {periode}
+        <span className="font-bold text-slate-800">Periode</span> : <PeriodeSelect weeks={weeks} selectedWeek={selectedWeek} onChange={onWeekChange} />
       </p>
       <p className="text-xs text-slate-600 flex items-center gap-1.5">
         <BookOpen className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
@@ -41,11 +70,23 @@ export function Header({
   studentName = 'Aisyah Putri',
   kelasNama = 'Kelas Anak',
   kelasId,
-  periode = 'Belum tersedia',
+  weeks = [],
+  defaultWeek = '',
   semester = '-',
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const selectedWeek = searchParams.get('minggu') ?? defaultWeek;
+
+  const handleWeekChange = (key: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('minggu', key);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <header className="h-[80px] md:h-[100px] flex items-center justify-between px-4 md:px-8 bg-white border-b border-border sticky top-0 z-10 shrink-0 shadow-sm">
@@ -85,7 +126,7 @@ export function Header({
       <div className="flex items-center gap-3 shrink-0">
         {/* Desktop: full profile details, always expanded */}
         <div className="hidden lg:grid grid-cols-2 gap-x-6 gap-y-1.5 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 shadow-sm min-w-[340px]">
-          <ProfileFields studentName={studentName} kelasNama={kelasNama} periode={periode} semester={semester} />
+          <ProfileFields studentName={studentName} kelasNama={kelasNama} semester={semester} weeks={weeks} selectedWeek={selectedWeek} onWeekChange={handleWeekChange} />
         </div>
 
         {/* Mobile/Tablet: avatar toggles an expand/collapse panel */}
@@ -105,7 +146,7 @@ export function Header({
           {profileOpen && (
             <div className="absolute right-0 top-[calc(100%+8px)] w-[260px] bg-white border-2 border-slate-100 rounded-2xl shadow-lg p-4 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-2">
-                <ProfileFields studentName={studentName} kelasNama={kelasNama} periode={periode} semester={semester} />
+                <ProfileFields studentName={studentName} kelasNama={kelasNama} semester={semester} weeks={weeks} selectedWeek={selectedWeek} onWeekChange={handleWeekChange} />
               </div>
             </div>
           )}

@@ -24,7 +24,8 @@ export default async function DashboardLayout({
           studentName={headerInfo.studentName}
           kelasNama={headerInfo.kelasNama}
           kelasId={headerInfo.kelasId}
-          periode={headerInfo.periode}
+          weeks={headerInfo.weeks}
+          defaultWeek={headerInfo.defaultWeek}
           semester={headerInfo.semester}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-8">

@@ -19,15 +19,20 @@ const KPI_DISPLAY: Record<string, { icon: LucideIcon; color: 'blue' | 'green' | 
   adab: { icon: HeartHandshake, color: 'rose' },
 };
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<{ minggu?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await getSession();
 
   if (!session || !session.user) {
     redirect('/login');
   }
 
+  const { minggu } = await searchParams;
   const userId = session.user.id;
-  const data = await getDashboardData(userId);
+  const data = await getDashboardData(userId, minggu);
   const { kpi, chartData, lessonPlan, notes, homework, studentName } = data;
 
   return (

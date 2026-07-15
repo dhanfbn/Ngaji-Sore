@@ -64,65 +64,84 @@ Sheets that are **rebuilt/new**:
 
 ### Kehadiran
 ```
-id_kehadiran | id_santri | id_kelas | tanggal | status | catatan | created_by
+id_kehadiran | id_santri | id_kelas | tanggal | status | catatan | created_by | key_minggu
 ```
 
 ### Ziyadah (new memorization material)
 ```
-id_ziyadah | id_santri | id_kelas | surat | ayat_dari | ayat_sampai | progres_ayat | target_ayat | tanggal | catatan_guru | created_by
+id_ziyadah | id_santri | id_kelas | surat | ayat_dari | ayat_sampai | progres_ayat | target_ayat | tanggal | catatan_guru | created_by | key_minggu
 ```
 
 ### Murojaah (review of previously memorized material)
 ```
-id_murojaah | id_santri | id_kelas | surat_diulang | status_kelancaran | tanggal | catatan_guru | created_by
+id_murojaah | id_santri | id_kelas | surat_diulang | status_kelancaran | tanggal | catatan_guru | created_by | key_minggu
 ```
 `status_kelancaran` (fluency status): Lancar / Cukup Lancar / Perlu Diulang (Fluent / Fairly Fluent / Needs Review)
 
 ### Tibyan (hijaiyah letter introduction)
 ```
-id_tibyan | id_santri | id_kelas | materi_huruf | progres | target | tanggal | catatan_guru | created_by
+id_tibyan | id_santri | id_kelas | materi_huruf | progres | target | tanggal | catatan_guru | created_by | key_minggu
 ```
 
 ### Tarbiyyah (weekly thematic character coaching)
 ```
-id_tarbiyyah | id_santri | id_kelas | tema | status_capaian | tanggal | catatan_guru | created_by
+id_tarbiyyah | id_santri | id_kelas | tema | status_capaian | tanggal | catatan_guru | created_by | key_minggu
 ```
 
 ### Adab_Harian (rebuilt from the old Adab sheet — fixes the swapped kategori/nilai column bug)
 ```
-id_adab | id_santri | id_kelas | kategori (text, e.g. "Sopan Santun") | nilai (0-100) | catatan_guru | tanggal
+id_adab | id_santri | id_kelas | kategori (text, e.g. "Sopan Santun") | nilai (0-100) | catatan_guru | tanggal | created_by | key_minggu
 ```
 
 ### Lesson_Plan_Mingguan (per class, 5 rows per week per class)
 ```
-id_lesson_plan | id_kelas | minggu_ke | tanggal_mulai | tanggal_selesai | tema_minggu | hari | kategori | materi | created_by
+id_lesson_plan | id_kelas | key_minggu | tanggal_mulai | tanggal_selesai | tema_minggu | hari | kategori | materi | created_by
 ```
-- The "learning period" shown in the dashboard header is computed
-  **automatically**: find the row where today's date falls between
-  `tanggal_mulai` and `tanggal_selesai` for the santri's class.
-- **A fallback state is required** for when the current week's lesson plan
-  hasn't been filled in by the teacher yet — never let the dashboard render
+- **v2.1 update (2026-07-15)**: the old numeric `minggu_ke` column was
+  replaced by `key_minggu`, an ISO-8601 week string like `"2026-W29"` (see
+  "Week Selector (v2.1)" below for the whole rollout). The dashboard's
+  "Periode" is now a **dropdown** built from the distinct `key_minggu`
+  values in this sheet for the santri's class, not an auto-detected "today
+  falls in this range" match.
+- **A fallback state is required** for when a santri's class has no
+  Lesson_Plan_Mingguan rows at all yet — never let the dashboard render
   empty/broken without a message.
 
 ### Catatan_Anak (rebuilt from the old Catatan_Guru sheet)
 ```
-id_catatan | id_santri | id_kelas | id_guru | tanggal | isi_catatan | created_by
+id_catatan | id_santri | id_kelas | id_guru | tanggal | isi_catatan | created_by | minggu_ke
 ```
+- The trailing column is literally named `minggu_ke` (not `key_minggu`) but
+  holds the same ISO week string format (e.g. `"2026-W21"`). Kept as-is in
+  `CatatanAnakSchema` to match the real header text — consider renaming the
+  sheet column to `key_minggu` for consistency with the other sheets.
 
 ### Tugas_Rumah (Homework)
 ```
-id_tugas | id_santri | id_kelas | minggu_ke | deskripsi_tugas | status (belum/selesai) | tanggal_dibuat | created_by
+id_tugas | id_santri | id_kelas | key_minggu | deskripsi_tugas | status (belum/selesai) | tanggal_dibuat | created_by
 ```
+- **Fixed 2026-07-15**: the old numeric `minggu_ke` column was renamed to
+  `key_minggu` (not duplicated as first assumed — it's a straight replacement,
+  same `"2026-Wxx"` format as the other sheets). `TugasRumahSchema` no longer
+  has a `minggu_ke` field at all. Verified live against `STD0001`/`CLS001A`.
 
 ### Progres_Mingguan (for the "Perkembangan 4 Minggu" / 4-Week Progress chart — manually aggregated per week, do NOT compute on-the-fly from raw data on every request)
 ```
-id_progres | id_santri | minggu_ke | tanggal | kehadiran_pct | ziyadah_pct | murojaah_pct | tibyan_pct | tarbiyyah_pct | adab_pct
+id_progres | id_santri | key_minggu | tanggal | kehadiran_pct | ziyadah_pct | murojaah_pct | tibyan_pct | tarbiyyah_pct | adab_pct
 ```
-- This is also the source of the **current KPI card** percentage for the 5
-  categories other than Kehadiran (take the row with the highest `minggu_ke`).
-  Kehadiran is still computed live from raw `Kehadiran` rows (present /
-  total sessions) since that formula is simple and always accurate without
-  needing manual teacher input.
+- This is also the source of the **KPI card** percentage for the 5
+  categories other than Kehadiran, looked up by the **selected week**
+  (`key_minggu`) from the Periode dropdown. Kehadiran is still computed live
+  from raw `Kehadiran` rows filtered to the selected week (present / total
+  sessions that week).
+- **Fixed 2026-07-15**: the old numeric `minggu_ke` column was replaced by
+  `key_minggu` (same format, not added alongside — `ProgresMingguanSchema`
+  no longer has `minggu_ke`). This also required a chart-code fix: the
+  trailing-4-week chart used to sort/slice/label by `minggu_ke` — it now
+  sorts by `key_minggu` (string-sorts correctly since it's year-prefixed and
+  zero-padded) and derives the "Mg. N" axis label from it via
+  `formatWeekLabel()` in `dashboard.service.ts`. Verified live: chart now
+  renders `Mg. 1`–`Mg. 4` correctly for `STD0001`.
 
 **Known data quality issues to fix during the sheet rebuild (carried over from the old file):**
 - ID collision: the old `Tahfizh` and `Doa` sheets both used the `HFZ00x` prefix — don't carry this over to the new sheets
@@ -134,6 +153,57 @@ id_progres | id_santri | minggu_ke | tanggal | kehadiran_pct | ziyadah_pct | mur
 - Date format is **inconsistent** across tabs: `Kehadiran`/`Ziyadah`/`Murojaah`/`Adab_Harian`/`Catatan_Anak` use `YYYY-MM-DD`, while `Tibyan`/`Tarbiyyah`/`Tugas_Rumah`/`Lesson_Plan_Mingguan`/`Progres_Mingguan` use `DD/MM/YYYY`. Always parse dates through `parseFlexibleDate()` in `src/lib/date.ts`, never `new Date(str)` directly — that mis-parses `DD/MM/YYYY`.
 - The `Progres_Mingguan` tab in the original spreadsheet has a **trailing space** in its tab name (`"Progres_Mingguan "`). This is already hardcoded in `googleSheets.service.ts` (`RANGE_PROGRES_MINGGUAN`) — if the sheet is ever renamed/recreated without the space, update that constant too.
 - `Ziyadah.progres_ayat` is filled in by teachers as a percentage string (e.g. `"25%"`), not an ayat count — don't use it to recompute the KPI percentage; that's why the Ziyadah KPI percentage source stays `Progres_Mingguan` (see above).
+
+## Week Selector (v2.1, added 2026-07-15)
+
+The dashboard is now filterable by week via a **Periode dropdown** in the
+Header, replacing the old auto-detected "today falls in this lesson plan's
+date range" text. Options come from the distinct `key_minggu` values in
+`Lesson_Plan_Mingguan` for the santri's class.
+
+**Architecture** (chosen over a client-side Context/global-bundle approach to
+avoid a loading-UX regression and to keep `layout.tsx` cheap):
+- The selected week lives in the URL as a search param: `/dashboard?minggu=2026-W29`.
+- `Header.tsx` is a Client Component that reads/writes it via `useSearchParams()` +
+  `router.push()` — this works even though `Header` is rendered from
+  `layout.tsx`, because Next.js layouts don't receive a `searchParams` prop,
+  but a Client Component can still read the live URL via the hook regardless
+  of where it's rendered in the tree.
+- `dashboard/page.tsx` (a Server Component) receives `searchParams` directly
+  (Next 16: it's a `Promise`, must be `await`ed) and passes `minggu` to
+  `getDashboardData(id_santri, selectedWeek)`.
+- `dashboard/layout.tsx` calls `getHeaderInfo(id_santri)` for the profile +
+  the `weeks` list + a `defaultWeek` (current ISO week if it has data, else
+  the latest available week) — used as the dropdown's initial value before
+  the user picks anything.
+- Both `getHeaderInfo` and `getDashboardData` live in `dashboard.service.ts`
+  and independently resolve "which week" via `resolveSelectedWeek()`: use
+  the requested week if it's a valid option, else current ISO week if it has
+  data, else the latest available week, else `''` (no weeks at all → empty
+  fallback state, same as the old "Belum tersedia").
+- `getISOWeekKey()` in `src/lib/date.ts` computes the `"YYYY-Www"` key from a
+  `Date` (ISO-8601 week numbering) — validated against real sheet rows
+  (`15/07/2026` → `"2026-W29"`).
+- **What's filtered by the dropdown**: KPI cards (all 6, including Kehadiran
+  recomputed live per-week), Lesson Plan Mingguan, Catatan Anak, Tugas di
+  Rumah. **What's NOT filtered**: the "Perkembangan 4 Minggu" chart — it
+  stays a global trailing-4-week trend regardless of the selected week,
+  since pinning a multi-week trend chart to one week doesn't make sense.
+- Verified end-to-end against the live sheet for `STD0001`/`CLS001A` (after
+  both manual sheet fixes below landed): dropdown shows `1 – 4 Jan 2026` (the
+  only week with lesson plan data), all 6 KPI cards match the sheet's
+  `2026-W01` row exactly, all 5 Tugas Rumah items render, and the chart
+  shows `Mg. 1`–`Mg. 4` — confirms the original bug report is fixed and the
+  full week-filter rollout works end to end.
+
+**Manual sheet fixes** (done directly in the spreadsheet — Claude only has read-only Sheets access):
+1. ✅ **Done 2026-07-15**: `Tugas_Rumah`'s `minggu_ke` column renamed to `key_minggu`.
+2. ✅ **Done 2026-07-15**: `Progres_Mingguan`'s `minggu_ke` column renamed to `key_minggu`.
+   This required a follow-up code fix — see the note under Progres_Mingguan above.
+3. Still outstanding (optional, consistency only): `Catatan_Anak`'s trailing
+   week column is still named `minggu_ke` rather than `key_minggu` — works
+   fine as-is (`CatatanAnakSchema.minggu_ke` matches it), rename only if you
+   want naming consistency across all sheets.
 
 ## KPI Badge — Thresholds (locked, per category — updated 2026-07-15)
 
@@ -201,7 +271,7 @@ The only detail page besides Ringkasan (matches the sidebar's 2 active menu item
 - **Sidebar**: logo (dynamic per santri's class — see "Implementation Status"),
   Ringkasan menu (active) + Kehadiran (locked, see note below), 5 other menus locked
 - **Header**: santri profile (name, class, year) top right + learning period
-  (auto-derived from the lesson plan) + semester
+  as a **week-selector dropdown** (see "Week Selector (v2.1)") + semester
 - **6 KPI cards**: percentage, position detail (e.g. "Al-Baqarah 1-5, Hal 3/5"),
   progress bar, badge label per threshold
 - **Perkembangan 4 Minggu chart**: line chart per category
@@ -240,6 +310,12 @@ The only detail page besides Ringkasan (matches the sidebar's 2 active menu item
   from the `sm:` breakpoint up, with `max-h` + `overflow-y-auto` so a long
   list scrolls inside the card instead of stretching the card / overlapping
   content below it (applies at every breakpoint including mobile, not just desktop).
+- Week selector / Periode dropdown — see "Week Selector (v2.1)" above for the
+  full architecture. This also fixed a real bug: the dashboard is used well
+  into 2026-W29 (mid-July) but only `2026-W01` (Jan) had lesson plan data for
+  `CLS001A`, so the old "does today fall in this date range" auto-detect
+  always came up empty. The dropdown sidesteps that by letting any available
+  week be picked directly, and defaults to it when the current week has no data.
 
 **Not yet built / deviations from the contract above — important for follow-up sessions:**
 - **The `/api/v1/...` routes above don't exist at all yet.** The current

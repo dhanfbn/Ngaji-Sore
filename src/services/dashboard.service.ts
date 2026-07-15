@@ -1,7 +1,7 @@
 import { googleSheetsService } from './googleSheets.service';
-import { parseFlexibleDate } from '@/lib/date';
+import { parseFlexibleDate, getISOWeekKey } from '@/lib/date';
 import { getBadgeLabel } from '@/lib/kpi';
-import type { KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem } from '@/types/dashboard';
+import type { KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption } from '@/types/dashboard';
 import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
 
 export interface DashboardData {
@@ -17,7 +17,8 @@ export interface HeaderInfo {
   studentName: string;
   kelasNama: string;
   kelasId: string;
-  periode: string;
+  weeks: WeekOption[];
+  defaultWeek: string;
   semester: string;
 }
 
@@ -36,13 +37,10 @@ function makeKPI(key: string, label: string, value: number, detail: string): KPI
   return { key, label, value, unit: '%', detail, badge: getBadgeLabel(value, key), locked: false };
 }
 
-/** Finds the Lesson_Plan_Mingguan row whose date range covers today, if the guru has filled it in. */
-function findCurrentWeekPlan(lessonPlans: LessonPlanMingguanRow[], today: Date): LessonPlanMingguanRow | undefined {
-  return lessonPlans.find(p => {
-    const start = parseFlexibleDate(p.tanggal_mulai);
-    const end = parseFlexibleDate(p.tanggal_selesai);
-    return start && end && today >= start && today <= end;
-  });
+/** "2026-W01" -> "Mg. 1" for the chart's X-axis; falls back to the raw key if unparseable. */
+function formatWeekLabel(key_minggu: string): string {
+  const match = key_minggu.match(/-W(\d{1,2})$/);
+  return match ? `Mg. ${Number(match[1])}` : key_minggu;
 }
 
 function formatPeriodeRange(start: Date, end: Date): string {
@@ -61,9 +59,55 @@ function getSemesterLabel(today: Date): string {
   return month >= 7 ? `Ganjil ${year}/${year + 1}` : `Genap ${year - 1}/${year}`;
 }
 
-export async function getDashboardData(id_santri: string): Promise<DashboardData> {
-  const [santri, kehadiran, ziyadah, murojaah, tibyan, tarbiyyah, adabHarian, progres, catatan, tugas] = await Promise.all([
-    googleSheetsService.getSantriById(id_santri),
+/** Selectable weeks for the dropdown, sourced from Lesson_Plan_Mingguan for the class, newest first. */
+async function getWeeksForKelas(id_kelas: string | undefined): Promise<{ weeks: WeekOption[]; lessonPlans: LessonPlanMingguanRow[] }> {
+  const lessonPlans = id_kelas ? await googleSheetsService.getLessonPlanByKelas(id_kelas) : [];
+
+  const firstRowPerWeek = new Map<string, LessonPlanMingguanRow>();
+  for (const p of lessonPlans) {
+    if (!firstRowPerWeek.has(p.key_minggu)) firstRowPerWeek.set(p.key_minggu, p);
+  }
+
+  const weeks: WeekOption[] = [...firstRowPerWeek.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0])) // "2026-W29" > "2026-W01" sorts correctly as plain strings
+    .map(([key, row]) => {
+      const start = parseFlexibleDate(row.tanggal_mulai);
+      const end = parseFlexibleDate(row.tanggal_selesai);
+      return { key, label: start && end ? formatPeriodeRange(start, end) : key };
+    });
+
+  return { weeks, lessonPlans };
+}
+
+/** Picks `requested` if it's a valid option, else the current ISO week if it has data, else the latest available week. */
+function resolveSelectedWeek(weeks: WeekOption[], requested: string | undefined, today: Date): string {
+  if (requested && weeks.some(w => w.key === requested)) return requested;
+  const currentWeekKey = getISOWeekKey(today);
+  return weeks.find(w => w.key === currentWeekKey)?.key ?? weeks[0]?.key ?? '';
+}
+
+export async function getHeaderInfo(id_santri: string): Promise<HeaderInfo> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+  const [kelas, { weeks }] = await Promise.all([
+    santri?.id_kelas ? googleSheetsService.getKelasById(santri.id_kelas) : Promise.resolve(null),
+    getWeeksForKelas(santri?.id_kelas),
+  ]);
+
+  return {
+    studentName: santri?.nama || 'Santri',
+    kelasNama: kelas?.nama_kelas || santri?.id_kelas || '-',
+    kelasId: santri?.id_kelas || '',
+    weeks,
+    defaultWeek: resolveSelectedWeek(weeks, undefined, new Date()),
+    semester: getSemesterLabel(new Date()),
+  };
+}
+
+/** `selectedWeekParam` is the "minggu" URL search param set by the Periode dropdown in Header. */
+export async function getDashboardData(id_santri: string, selectedWeekParam?: string): Promise<DashboardData> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+
+  const [kehadiran, ziyadah, murojaah, tibyan, tarbiyyah, adabHarian, progres, catatan, tugas, { weeks, lessonPlans }] = await Promise.all([
     googleSheetsService.getKehadiranBySantri(id_santri),
     googleSheetsService.getZiyadahBySantri(id_santri),
     googleSheetsService.getMurojaahBySantri(id_santri),
@@ -73,46 +117,50 @@ export async function getDashboardData(id_santri: string): Promise<DashboardData
     googleSheetsService.getProgresMingguanBySantri(id_santri),
     googleSheetsService.getCatatanAnakBySantri(id_santri),
     googleSheetsService.getTugasRumahBySantri(id_santri),
+    getWeeksForKelas(santri?.id_kelas),
   ]);
 
-  const lessonPlans = santri?.id_kelas ? await googleSheetsService.getLessonPlanByKelas(santri.id_kelas) : [];
+  const weekKey = resolveSelectedWeek(weeks, selectedWeekParam, new Date());
 
-  // --- Kehadiran: computed live from raw attendance (always available, exact) ---
-  const totalKehadiran = kehadiran.length;
-  const hadirCount = kehadiran.filter(k => k.status.toLowerCase() === 'hadir').length;
+  // --- Kehadiran: live % from the selected week's attendance rows ---
+  const weekKehadiran = kehadiran.filter(k => k.key_minggu === weekKey);
+  const totalKehadiran = weekKehadiran.length;
+  const hadirCount = weekKehadiran.filter(k => k.status.toLowerCase() === 'hadir').length;
   const kehadiranPct = totalKehadiran > 0 ? Math.round((hadirCount / totalKehadiran) * 100) : 0;
 
-  // --- Everything else: latest manually-aggregated week from Progres_Mingguan ---
+  // --- Everything else: the selected week's manually-aggregated row from Progres_Mingguan ---
   // (per CLAUDE.md: these percentages must NOT be recomputed on-the-fly from raw rows)
-  const progresSorted = [...progres].sort((a, b) => b.minggu_ke - a.minggu_ke);
-  const latestProgres = progresSorted[0];
+  const weekProgres = progres.find(p => p.key_minggu === weekKey);
 
-  const latestZiyadah = sortByDateDesc(ziyadah, z => z.tanggal)[0];
-  const latestMurojaah = sortByDateDesc(murojaah, m => m.tanggal)[0];
-  const latestTibyan = sortByDateDesc(tibyan, t => t.tanggal)[0];
-  const latestTarbiyyah = sortByDateDesc(tarbiyyah, t => t.tanggal)[0];
-  const latestAdab = sortByDateDesc(adabHarian, a => a.tanggal)[0];
+  const weekZiyadah = sortByDateDesc(ziyadah.filter(z => z.key_minggu === weekKey), z => z.tanggal)[0];
+  const weekMurojaah = sortByDateDesc(murojaah.filter(m => m.key_minggu === weekKey), m => m.tanggal)[0];
+  const weekTibyan = sortByDateDesc(tibyan.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
+  const weekTarbiyyah = sortByDateDesc(tarbiyyah.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
+  const weekAdab = sortByDateDesc(adabHarian.filter(a => a.key_minggu === weekKey), a => a.tanggal)[0];
 
   const kpi: KPIEntry[] = [
-    makeKPI('kehadiran', 'Kehadiran', kehadiranPct, `Hadir ${hadirCount} dari ${totalKehadiran} pertemuan`),
-    makeKPI('ziyadah', 'Ziyadah', latestProgres?.ziyadah_pct ?? 0,
-      latestZiyadah ? `${latestZiyadah.surat} Ayat ${latestZiyadah.ayat_dari}-${latestZiyadah.ayat_sampai}` : 'Belum ada data'),
-    makeKPI('murojaah', 'Murojaah', latestProgres?.murojaah_pct ?? 0,
-      latestMurojaah ? `${latestMurojaah.surat_diulang} · ${latestMurojaah.status_kelancaran}` : 'Belum ada data'),
-    makeKPI('tibyan', 'Tibyan', latestProgres?.tibyan_pct ?? 0,
-      latestTibyan?.materi_huruf ? `${latestTibyan.materi_huruf}` : 'Belum ada data'),
-    makeKPI('tarbiyyah', 'Tarbiyyah', latestProgres?.tarbiyyah_pct ?? 0,
-      latestTarbiyyah?.tema ? `${latestTarbiyyah.tema}` : 'Belum ada data'),
-    makeKPI('adab', 'Adab Harian', latestProgres?.adab_pct ?? 0,
-      latestAdab ? `${latestAdab.kategori}: ${latestAdab.nilai}` : 'Belum ada data'),
+    makeKPI('kehadiran', 'Kehadiran', kehadiranPct, totalKehadiran > 0 ? `Hadir ${hadirCount} dari ${totalKehadiran} pertemuan` : 'Belum ada data'),
+    makeKPI('ziyadah', 'Ziyadah', weekProgres?.ziyadah_pct ?? 0,
+      weekZiyadah ? `${weekZiyadah.surat} Ayat ${weekZiyadah.ayat_dari}-${weekZiyadah.ayat_sampai}` : 'Belum ada data'),
+    makeKPI('murojaah', 'Murojaah', weekProgres?.murojaah_pct ?? 0,
+      weekMurojaah ? `${weekMurojaah.surat_diulang} · ${weekMurojaah.status_kelancaran}` : 'Belum ada data'),
+    makeKPI('tibyan', 'Tibyan', weekProgres?.tibyan_pct ?? 0,
+      weekTibyan?.materi_huruf ? `${weekTibyan.materi_huruf}` : 'Belum ada data'),
+    makeKPI('tarbiyyah', 'Tarbiyyah', weekProgres?.tarbiyyah_pct ?? 0,
+      weekTarbiyyah?.tema ? `${weekTarbiyyah.tema}` : 'Belum ada data'),
+    makeKPI('adab', 'Adab Harian', weekProgres?.adab_pct ?? 0,
+      weekAdab ? `${weekAdab.kategori}: ${weekAdab.nilai}` : 'Belum ada data'),
   ];
 
   // --- 4-week chart: trailing weeks from the manual Progres_Mingguan history ---
+  // Global trend, intentionally NOT filtered by the Periode dropdown — a single
+  // selected week has nothing meaningful to trend against.
   const chartData: ChartDataPoint[] = [...progres]
-    .sort((a, b) => a.minggu_ke - b.minggu_ke)
+    .filter(p => p.key_minggu)
+    .sort((a, b) => a.key_minggu!.localeCompare(b.key_minggu!))
     .slice(-4)
     .map(p => ({
-      week: `Mg. ${p.minggu_ke}`,
+      week: formatWeekLabel(p.key_minggu!),
       kehadiran: p.kehadiran_pct,
       ziyadah: p.ziyadah_pct,
       murojaah: p.murojaah_pct,
@@ -121,28 +169,29 @@ export async function getDashboardData(id_santri: string): Promise<DashboardData
       adab: p.adab_pct,
     }));
 
-  // --- Lesson plan for the current week, with a mandatory fallback when unfilled ---
-  const today = new Date();
-  const currentWeekRow = findCurrentWeekPlan(lessonPlans, today);
+  // --- Lesson plan for the selected week ---
+  const weekPlanRows = lessonPlans
+    .filter(p => p.key_minggu === weekKey)
+    .sort((a, b) => HARI_ORDER.indexOf(a.hari) - HARI_ORDER.indexOf(b.hari));
 
-  const lessonPlan: LessonPlanData = currentWeekRow
+  const lessonPlan: LessonPlanData = weekPlanRows.length > 0
     ? {
-        tema: currentWeekRow.tema_minggu,
-        hari: lessonPlans
-          .filter(p => p.minggu_ke === currentWeekRow.minggu_ke)
-          .sort((a, b) => HARI_ORDER.indexOf(a.hari) - HARI_ORDER.indexOf(b.hari))
-          .map(p => ({ hari: p.hari, kategori: p.kategori, materi: p.materi ?? '' })),
+        tema: weekPlanRows[0].tema_minggu,
+        hari: weekPlanRows.map(p => ({ hari: p.hari, kategori: p.kategori, materi: p.materi ?? '' })),
       }
     : { hari: [] };
 
-  // --- Catatan anak: newest first ---
-  const notes = sortByDateDesc(catatan, c => c.tanggal);
+  // --- Catatan anak: the selected week's notes, newest first ---
+  // NOTE: Catatan_Anak's sheet column is literally named "minggu_ke" (holds "2026-Wxx" text, not a number).
+  const notes = sortByDateDesc(catatan.filter(c => c.minggu_ke === weekKey), c => c.tanggal);
 
-  // --- Tugas rumah: normalize status case ---
-  const homework: HomeworkItem[] = tugas.map(t => ({
-    deskripsi: t.deskripsi_tugas,
-    status: t.status.toLowerCase().includes('selesai') ? 'selesai' : 'belum',
-  }));
+  // --- Tugas rumah: the selected week's homework, normalize status case ---
+  const homework: HomeworkItem[] = tugas
+    .filter(t => t.key_minggu === weekKey)
+    .map(t => ({
+      deskripsi: t.deskripsi_tugas,
+      status: t.status.toLowerCase().includes('selesai') ? 'selesai' : 'belum',
+    }));
 
   return {
     kpi,
@@ -151,27 +200,5 @@ export async function getDashboardData(id_santri: string): Promise<DashboardData
     notes,
     homework,
     studentName: santri?.nama || 'Santri',
-  };
-}
-
-export async function getHeaderInfo(id_santri: string): Promise<HeaderInfo> {
-  const santri = await googleSheetsService.getSantriById(id_santri);
-  const [kelas, lessonPlans] = await Promise.all([
-    santri?.id_kelas ? googleSheetsService.getKelasById(santri.id_kelas) : null,
-    santri?.id_kelas ? googleSheetsService.getLessonPlanByKelas(santri.id_kelas) : Promise.resolve([]),
-  ]);
-
-  const today = new Date();
-  const currentWeekRow = findCurrentWeekPlan(lessonPlans, today);
-  const periode = currentWeekRow
-    ? formatPeriodeRange(parseFlexibleDate(currentWeekRow.tanggal_mulai)!, parseFlexibleDate(currentWeekRow.tanggal_selesai)!)
-    : 'Belum tersedia';
-
-  return {
-    studentName: santri?.nama || 'Santri',
-    kelasNama: kelas?.nama_kelas || santri?.id_kelas || '-',
-    kelasId: santri?.id_kelas || '',
-    periode,
-    semester: getSemesterLabel(today),
   };
 }

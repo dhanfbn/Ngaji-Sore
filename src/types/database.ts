@@ -55,6 +55,7 @@ export const KehadiranSchema = z.object({
   status: z.string().catch(''),
   catatan: z.string().optional(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(), // "2026-W01" — ISO week key, added alongside the v2.1 week-filter rollout
 });
 
 export const ZiyadahSchema = z.object({
@@ -69,6 +70,7 @@ export const ZiyadahSchema = z.object({
   tanggal: z.string(),
   catatan_guru: z.string().optional(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(),
 });
 
 export const MurojaahSchema = z.object({
@@ -80,6 +82,7 @@ export const MurojaahSchema = z.object({
   tanggal: z.string(),
   catatan_guru: z.string().optional(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(),
 });
 
 export const TibyanSchema = z.object({
@@ -92,6 +95,7 @@ export const TibyanSchema = z.object({
   tanggal: z.string(),
   catatan_guru: z.string().optional(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(),
 });
 
 export const TarbiyyahSchema = z.object({
@@ -103,6 +107,7 @@ export const TarbiyyahSchema = z.object({
   tanggal: z.string(),
   catatan_guru: z.string().optional(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(),
 });
 
 export const AdabHarianSchema = z.object({
@@ -114,12 +119,13 @@ export const AdabHarianSchema = z.object({
   catatan_guru: z.string().optional(),
   tanggal: z.string(),
   created_by: z.string().optional(),
+  key_minggu: z.string().optional(),
 });
 
 export const LessonPlanMingguanSchema = z.object({
   id_lesson_plan: z.string(),
   id_kelas: z.string(),
-  minggu_ke: safeNumber,
+  key_minggu: z.string(), // "2026-W01" — replaced the old numeric minggu_ke column
   tanggal_mulai: z.string(),
   tanggal_selesai: z.string(),
   tema_minggu: z.string().optional(),
@@ -137,23 +143,27 @@ export const CatatanAnakSchema = z.object({
   tanggal: z.string(),
   isi_catatan: z.string(),
   created_by: z.string().optional(),
+  // NOTE: the sheet's actual column header is "minggu_ke" but it holds an ISO
+  // week key ("2026-W21"), not a number — kept as-is to match the header text.
+  // Consider renaming the sheet column to "key_minggu" for consistency.
+  minggu_ke: z.string().optional(),
 });
 
 export const TugasRumahSchema = z.object({
   id_tugas: z.string(),
   id_santri: z.string(),
   id_kelas: z.string(),
-  minggu_ke: safeNumber,
   deskripsi_tugas: z.string(),
   status: z.string(), // "Belum" / "Selesai" — normalized case-insensitively where used
   tanggal_dibuat: z.string().optional(),
   created_by: z.string().optional(),
+  // The old numeric minggu_ke column was replaced (not duplicated) by key_minggu.
+  key_minggu: z.string().optional(),
 });
 
 export const ProgresMingguanSchema = z.object({
   id_progres: z.string(),
   id_santri: z.string(),
-  minggu_ke: safeNumber,
   tanggal: z.string(),
   kehadiran_pct: safeNumber,
   ziyadah_pct: safeNumber,
@@ -161,6 +171,8 @@ export const ProgresMingguanSchema = z.object({
   tibyan_pct: safeNumber,
   tarbiyyah_pct: safeNumber,
   adab_pct: safeNumber,
+  // The old numeric minggu_ke column was replaced (not duplicated) by key_minggu.
+  key_minggu: z.string().optional(),
 });
 
 export type SantriRow = z.infer<typeof SantriSchema>;
