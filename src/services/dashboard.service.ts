@@ -16,6 +16,7 @@ export interface DashboardData {
 export interface HeaderInfo {
   studentName: string;
   kelasNama: string;
+  kelasId: string;
   periode: string;
   semester: string;
 }
@@ -32,7 +33,7 @@ function sortByDateDesc<T>(rows: T[], getDate: (row: T) => string): T[] {
 }
 
 function makeKPI(key: string, label: string, value: number, detail: string): KPIEntry {
-  return { key, label, value, unit: '%', detail, badge: getBadgeLabel(value), locked: false };
+  return { key, label, value, unit: '%', detail, badge: getBadgeLabel(value, key), locked: false };
 }
 
 /** Finds the Lesson_Plan_Mingguan row whose date range covers today, if the guru has filled it in. */
@@ -169,6 +170,7 @@ export async function getHeaderInfo(id_santri: string): Promise<HeaderInfo> {
   return {
     studentName: santri?.nama || 'Santri',
     kelasNama: kelas?.nama_kelas || santri?.id_kelas || '-',
+    kelasId: santri?.id_kelas || '',
     periode,
     semester: getSemesterLabel(today),
   };

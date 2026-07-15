@@ -5,7 +5,8 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { TrendingUp } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChartDataPoint } from '@/types/dashboard';
 
@@ -81,13 +82,14 @@ interface ProgressChartProps {
 export function ProgressChart({ data }: ProgressChartProps) {
   return (
     <Card className="h-full card-3d overflow-hidden bg-white">
-      <CardHeader className="pb-0 pt-5 px-5 sm:px-6">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-foreground">
-          <span aria-hidden="true">📈</span>
-          Perkembangan 4 Minggu
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-2 sm:px-4 pb-4 pt-4">
+      <CardContent className="flex flex-col h-full p-5 sm:p-6">
+        <div className="inline-flex items-center gap-2 bg-indigo-500 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
+          <span className="w-6 h-6 rounded-full bg-white text-indigo-500 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
+          </span>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-white">Perkembangan 4 Minggu</span>
+        </div>
+        <div className="flex-1 min-h-0 px-0 sm:px-2">
         <div className="h-[260px] sm:h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
@@ -123,6 +125,7 @@ export function ProgressChart({ data }: ProgressChartProps) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        </div>
         <CustomLegend />
       </CardContent>
     </Card>
@@ -133,10 +136,8 @@ export function ProgressChart({ data }: ProgressChartProps) {
 export function ProgressChartSkeleton() {
   return (
     <Card className="h-full card-3d overflow-hidden bg-white">
-      <CardHeader className="pb-0 pt-5 px-6">
-        <Skeleton className="h-6 w-56 rounded" />
-      </CardHeader>
-      <CardContent className="px-6 pb-6 pt-4 space-y-3">
+      <CardContent className="p-5 sm:p-6 space-y-4">
+        <Skeleton className="h-7 w-52 rounded-full" />
         <Skeleton className="h-[280px] w-full rounded-xl" />
         <div className="flex justify-center gap-6">
           {Array.from({ length: 4 }).map((_, i) => (

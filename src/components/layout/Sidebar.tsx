@@ -18,6 +18,18 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'; // Required for accessibility if Title is hidden
 
+const DAYCARE_KELAS = ['CLS001A', 'CLS002B', 'CLS003C'];
+const TAUD_KELAS = ['CLS004D'];
+const SD_KELAS = ['CLSSD01', 'CLSSD02', 'CLSSD03', 'CLSSD04', 'CLSSD05', 'CLSSD06'];
+
+function getLogoSrc(kelasId?: string): string {
+  const id = kelasId?.trim().toUpperCase();
+  if (id && DAYCARE_KELAS.includes(id)) return '/Logo_Daycare.jpeg';
+  if (id && TAUD_KELAS.includes(id)) return '/Logo_Taud.jpeg';
+  if (id && SD_KELAS.includes(id)) return '/Logo_SD.jpeg';
+  return '/logo.jpeg';
+}
+
 // v2 scope: only Ringkasan + Kehadiran are active; the other 5 KPI categories
 // render locked until their detail pages are built.
 const navItems = [
@@ -30,7 +42,7 @@ const navItems = [
   { name: 'Adab Harian', icon: HeartHandshake, href: '#', locked: true },
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ onNavigate, kelasId }: { onNavigate?: () => void; kelasId?: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -44,7 +56,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex flex-col h-full bg-[#faf9f7] shadow-sm">
       {/* Logo Section */}
       <div className="p-6 flex flex-col items-center border-b border-slate-50">
-        <img className="w-48 h-48" src="logo.jpeg" alt="logo" />
+        <img className="w-48 h-48" src={getLogoSrc(kelasId)} alt="logo" />
         {/* <div className="flex items-center justify-center w-16 h-16 bg-white shadow-sm border border-slate-100 rounded-full mb-3 text-2xl">
           <img src="logo.jpeg" alt="logo" />
         </div> */}
@@ -111,12 +123,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ kelasId }: { kelasId?: string }) {
   return (
     <>
       {/* Desktop Sidebar */}
       <aside className="w-[280px] hidden md:flex flex-col h-screen border-r border-slate-100 sticky top-0 shrink-0">
-        <SidebarContent />
+        <SidebarContent kelasId={kelasId} />
       </aside>
 
       {/* Mobile Sidebar Trigger is in Header, but we render the Sheet structure here if preferred. 

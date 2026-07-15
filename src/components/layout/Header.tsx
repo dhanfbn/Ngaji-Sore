@@ -8,11 +8,12 @@ import { SidebarContent } from '@/components/layout/Sidebar';
 interface HeaderProps {
   studentName?: string;
   kelasNama?: string;
+  kelasId?: string;
   periode?: string;
   semester?: string;
 }
 
-function ProfileFields({ studentName, kelasNama, periode, semester }: Required<HeaderProps>) {
+function ProfileFields({ studentName, kelasNama, periode, semester }: Required<Pick<HeaderProps, 'studentName' | 'kelasNama' | 'periode' | 'semester'>>) {
   return (
     <>
       <p className="text-xs text-slate-600">
@@ -39,6 +40,7 @@ function ProfileFields({ studentName, kelasNama, periode, semester }: Required<H
 export function Header({
   studentName = 'Aisyah Putri',
   kelasNama = 'Kelas Anak',
+  kelasId,
   periode = 'Belum tersedia',
   semester = '-',
 }: HeaderProps) {
@@ -60,7 +62,7 @@ export function Header({
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-[280px]" showCloseButton={false}>
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <SidebarContent onNavigate={() => setIsOpen(false)} />
+              <SidebarContent onNavigate={() => setIsOpen(false)} kelasId={kelasId} />
             </SheetContent>
           </Sheet>
         </div>
@@ -73,7 +75,7 @@ export function Header({
         {/* App Title */}
         <div className="min-w-0">
           <h1 className="font-bold text-base md:text-2xl text-foreground tracking-tight truncate">
-            Laporan Progres <span className="hidden sm:inline">Belajar Ngaji Sore</span>
+            Laporan Progres Belajar
           </h1>
           <p className="text-xs md:text-sm text-muted-foreground font-medium">Ruang Belajar Quran Anak</p>
         </div>

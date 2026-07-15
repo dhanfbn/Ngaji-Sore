@@ -1,146 +1,165 @@
 # Ngaji-Sore — Project Context
 
-> File ini adalah sumber kebenaran untuk konteks project lintas sesi Claude Code.
-> Paste/replace isi file ini di root repo sebelum memulai sesi baru. Jangan ubah keputusan
-> yang sudah dikunci di bawah tanpa alasan kuat — kalau ada perubahan scope, catat di
-> bagian "Backlog v2.1 / v3", jangan disisipkan ke scope v2 yang sedang berjalan.
+> This file is the source of truth for cross-session Claude Code context.
+> Paste/replace this file's content at the repo root before starting a new session.
+> Don't change decisions already locked below without a strong reason — if scope
+> changes, log it under "Backlog v2.1 / v3", don't fold it into the v2 scope
+> that's currently in progress.
 
-## Ringkasan Project
+## Project Summary
 
-Ngaji-Sore adalah aplikasi web untuk melaporkan progres belajar ngaji (santri) ke
-orang tua/wali murid. Stakeholder: santri, wali murid, guru.
+Ngaji-Sore is a web app for reporting Quran-recitation (ngaji) learning progress
+for students (santri) to their parents/guardians. Stakeholders: santri, wali murid
+(parent/guardian), guru (teacher).
 
 - **Repo**: github.com/dhanfbn/Ngaji-Sore
 - **Framework**: Next.js
 - **Deployment**: Vercel
 - **Data source (v2)**: Google Sheets API (read-only)
-- **Developer**: solo, tanpa tim
+- **Developer**: solo, no team
 
-## Roadmap Fase
+## Phase Roadmap
 
-| Fase | Deskripsi | Status/Timeline |
+| Phase | Description | Status/Timeline |
 |---|---|---|
-| v2 (pilot) | Read-only dashboard, taksonomi KPI baru | **Sedang dikerjakan, timeline 7 hari** |
-| Fase 2 | Migrasi ke database (Postgres/MySQL), auth baru (id_santri + password atau Google Auth), semua input (termasuk guru) pindah ke web — tidak lagi manual di Sheets | Mulai **27 Juli 2026** |
-| Fase 3 | API dibuka untuk mobile app (Flutter) | Belum ada timeline |
+| v2 (pilot) | Read-only dashboard, new KPI taxonomy | **In progress, 7-day timeline** |
+| Phase 2 | Migration to a database (Postgres/MySQL), new auth (id_santri + password or Google Auth), all input (including from teachers) moves to the web — no longer manual in Sheets | Starts **27 July 2026** |
+| Phase 3 | API opened up for the mobile app (Flutter) | No timeline yet |
 
-## Scope v2 — TERKUNCI, jangan diperluas di tengah jalan
+## v2 Scope — LOCKED, don't expand mid-stream
 
-**Yang dikerjakan:**
-- Auth tetap: `id_santri` + `tanggal_lahir`, ditambah rate limiting sederhana
-  (mis. max 5 percobaan / 15 menit per id_santri) — ini WAJIB masuk v2, bukan opsional
-- Sidebar: hanya 2 menu aktif — **Ringkasan** dan **Kehadiran**. Menu lain
-  (Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian) tampil **locked/disabled**
-  (ikon gembok), tidak ada halaman detailnya di v2
-  - **Update (diputuskan saat development)**: ini berlaku untuk *navigasi
-    sidebar* saja. Ke-6 KPI card di halaman Ringkasan sendiri **semua
-    menampilkan data asli/live** (bukan 5 di antaranya locked/placeholder
-    seperti contoh JSON awal di bawah) — diputuskan langsung oleh product
-    owner di tengah sesi, bukan scope creep. Yang tetap locked hanya
-    *link sidebar* ke halaman detail 5 kategori tsb, karena halaman
-    detailnya memang tidak dibuat di v2. Kehadiran juga masih locked di
-    sidebar untuk saat ini karena halaman `/dashboard/kehadiran` belum
-    dibuat (lihat "Status Implementasi").
-- Rebuild skema Google Sheets sesuai taksonomi KPI baru (lihat bagian Data Model)
-- Rebuild seluruh komponen UI KPI, chart progres, lesson plan, catatan anak,
-  tugas rumah — sesuai sketsa UI yang sudah didiskusikan
-- API layer read-only di Next.js API routes (bukan Flutter/klien manggil Sheets
-  API langsung — semua lewat API route sendiri, supaya kontrak tidak berubah
-  saat migrasi DB di Fase 2)
+**In scope:**
+- Auth stays: `id_santri` + `tanggal_lahir`, plus simple rate limiting
+  (e.g. max 5 attempts / 15 minutes per id_santri) — this is REQUIRED for v2, not optional
+- Sidebar: only 2 active menu items — **Ringkasan** (Summary) and **Kehadiran**
+  (Attendance). The other menus (Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian)
+  render **locked/disabled** (padlock icon), with no detail page in v2
+  - **Update (decided during development)**: this applies to *sidebar
+    navigation* only. All 6 KPI cards on the Ringkasan page itself **display
+    real/live data** (not 5 of them locked/placeholder as in the initial
+    JSON example below) — decided directly by the product owner mid-session,
+    not scope creep. The only thing still locked is the *sidebar link* to
+    the detail pages for those 5 categories, because those detail pages
+    genuinely aren't built in v2. Kehadiran is also still locked in the
+    sidebar for now because the `/dashboard/kehadiran` page hasn't been
+    built yet (see "Implementation Status").
+- Rebuild the Google Sheets schema to match the new KPI taxonomy (see Data Model)
+- Rebuild all KPI UI components, progress chart, lesson plan, catatan anak
+  (child notes), tugas rumah (homework) — per the UI sketches already discussed
+- Read-only API layer via Next.js API routes (not the client/Flutter calling the
+  Sheets API directly — everything goes through our own API route, so the
+  contract doesn't change when we migrate DB in Phase 2)
 
-**Yang TIDAK dikerjakan di v2 (sengaja dicoret, jangan ditambahkan):**
-- Write API — semua input tetap manual oleh guru di Google Sheets
-- Fitur "Lembar Orang Tua" — dibatalkan total, tidak ditunda, tidak ada di v2
-- Halaman detail untuk Ziyadah/Murojaah/Tibyan/Tarbiyyah/Adab Harian
+**Out of scope for v2 (intentionally cut, don't add back):**
+- Write API — all input stays manual by teachers in Google Sheets
+- "Lembar Orang Tua" (Parent Sheet) feature — cancelled entirely, not deferred, not in v2
+- Detail pages for Ziyadah/Murojaah/Tibyan/Tarbiyyah/Adab Harian
 
 ## Data Model (Google Sheets)
 
-Sheet yang **dipertahankan** (struktur sudah oke): `Santri`, `Kelas`, `Guru`
+Sheets that are **kept as-is** (structure is already fine): `Santri`, `Kelas`, `Guru`
 
-Sheet yang **rebuild/baru**:
+Sheets that are **rebuilt/new**:
 
 ### Kehadiran
 ```
 id_kehadiran | id_santri | id_kelas | tanggal | status | catatan | created_by
 ```
 
-### Ziyadah (materi hafalan baru)
+### Ziyadah (new memorization material)
 ```
 id_ziyadah | id_santri | id_kelas | surat | ayat_dari | ayat_sampai | progres_ayat | target_ayat | tanggal | catatan_guru | created_by
 ```
 
-### Murojaah (pengulangan hafalan lama)
+### Murojaah (review of previously memorized material)
 ```
 id_murojaah | id_santri | id_kelas | surat_diulang | status_kelancaran | tanggal | catatan_guru | created_by
 ```
-`status_kelancaran`: Lancar / Cukup Lancar / Perlu Diulang
+`status_kelancaran` (fluency status): Lancar / Cukup Lancar / Perlu Diulang (Fluent / Fairly Fluent / Needs Review)
 
-### Tibyan (pengenalan huruf hijaiyah)
+### Tibyan (hijaiyah letter introduction)
 ```
 id_tibyan | id_santri | id_kelas | materi_huruf | progres | target | tanggal | catatan_guru | created_by
 ```
 
-### Tarbiyyah (pembinaan adab tematik mingguan)
+### Tarbiyyah (weekly thematic character coaching)
 ```
 id_tarbiyyah | id_santri | id_kelas | tema | status_capaian | tanggal | catatan_guru | created_by
 ```
 
-### Adab_Harian (rebuild dari sheet Adab lama — fix bug kolom kategori/nilai tertukar)
+### Adab_Harian (rebuilt from the old Adab sheet — fixes the swapped kategori/nilai column bug)
 ```
-id_adab | id_santri | id_kelas | kategori (teks, mis. "Sopan Santun") | nilai (0-100) | catatan_guru | tanggal
+id_adab | id_santri | id_kelas | kategori (text, e.g. "Sopan Santun") | nilai (0-100) | catatan_guru | tanggal
 ```
 
-### Lesson_Plan_Mingguan (per kelas, 5 baris per minggu per kelas)
+### Lesson_Plan_Mingguan (per class, 5 rows per week per class)
 ```
 id_lesson_plan | id_kelas | minggu_ke | tanggal_mulai | tanggal_selesai | tema_minggu | hari | kategori | materi | created_by
 ```
-- "Periode belajar" di header dashboard dihitung **otomatis**: cari baris yang
-  tanggal hari ini jatuh di antara `tanggal_mulai` dan `tanggal_selesai` untuk
-  kelas santri tsb.
-- **WAJIB ada fallback state** kalau lesson plan minggu berjalan belum diisi
-  guru — jangan biarkan dashboard kosong/error tanpa pesan.
+- The "learning period" shown in the dashboard header is computed
+  **automatically**: find the row where today's date falls between
+  `tanggal_mulai` and `tanggal_selesai` for the santri's class.
+- **A fallback state is required** for when the current week's lesson plan
+  hasn't been filled in by the teacher yet — never let the dashboard render
+  empty/broken without a message.
 
-### Catatan_Anak (rebuild dari Catatan_Guru lama)
+### Catatan_Anak (rebuilt from the old Catatan_Guru sheet)
 ```
 id_catatan | id_santri | id_kelas | id_guru | tanggal | isi_catatan | created_by
 ```
 
-### Tugas_Rumah
+### Tugas_Rumah (Homework)
 ```
 id_tugas | id_santri | id_kelas | minggu_ke | deskripsi_tugas | status (belum/selesai) | tanggal_dibuat | created_by
 ```
 
-### Progres_Mingguan (untuk chart "Perkembangan 4 Minggu" — agregat manual per minggu, JANGAN hitung on-the-fly dari raw data tiap request)
+### Progres_Mingguan (for the "Perkembangan 4 Minggu" / 4-Week Progress chart — manually aggregated per week, do NOT compute on-the-fly from raw data on every request)
 ```
 id_progres | id_santri | minggu_ke | tanggal | kehadiran_pct | ziyadah_pct | murojaah_pct | tibyan_pct | tarbiyyah_pct | adab_pct
 ```
-- Ini juga sumber persen **KPI card saat ini** untuk 5 kategori selain
-  Kehadiran (ambil baris `minggu_ke` terbesar). Kehadiran tetap dihitung
-  live dari raw `Kehadiran` (hadir/total pertemuan) karena rumusnya simpel
-  dan selalu akurat tanpa perlu input manual guru.
+- This is also the source of the **current KPI card** percentage for the 5
+  categories other than Kehadiran (take the row with the highest `minggu_ke`).
+  Kehadiran is still computed live from raw `Kehadiran` rows (present /
+  total sessions) since that formula is simple and always accurate without
+  needing manual teacher input.
 
-**Known data quality issues yang harus di-fix saat rebuild sheet (dari file lama):**
-- ID kolisi: `Tahfizh` dan `Doa` sheet lama sama-sama pakai prefix `HFZ00x` — jangan diwariskan ke sheet baru
-- Sheet `Adab` lama: kolom `kategori` isinya angka (harusnya teks), `nilai` terpisah — sudah di-fix di skema `Adab_Harian` baru di atas
-- Sheet `Target` lama: ada baris data nyasar tanpa header di bagian bawah — jangan ikut ter-copy saat migrasi
+**Known data quality issues to fix during the sheet rebuild (carried over from the old file):**
+- ID collision: the old `Tahfizh` and `Doa` sheets both used the `HFZ00x` prefix — don't carry this over to the new sheets
+- Old `Adab` sheet: the `kategori` column held numbers (should be text), with `nilai` separate — already fixed in the new `Adab_Harian` schema above
+- Old `Target` sheet: had stray rows without headers at the bottom — don't let these get copied over during migration
 
-**Ditemukan saat development sheet v2 yang sekarang dipakai (belum tentu berlaku ke instance sheet lain, tapi kode sudah defensif terhadap ini):**
-- Banyak sel string di seluruh sheet punya leading/trailing whitespace (mis. `" STD0001 "`) — `googleSheets.service.ts` sudah trim semua nilai sel saat parsing. Jangan asumsikan data mentah sudah bersih kalau nambah field baru.
-- Format tanggal **tidak konsisten** antar tab: `Kehadiran`/`Ziyadah`/`Murojaah`/`Adab_Harian`/`Catatan_Anak` pakai `YYYY-MM-DD`, sedangkan `Tibyan`/`Tarbiyyah`/`Tugas_Rumah`/`Lesson_Plan_Mingguan`/`Progres_Mingguan` pakai `DD/MM/YYYY`. Selalu parse tanggal lewat `parseFlexibleDate()` di `src/lib/date.ts`, jangan `new Date(str)` langsung — itu salah-parse `DD/MM/YYYY`.
-- Tab `Progres_Mingguan` di spreadsheet asli punya **trailing space** di nama tab (`"Progres_Mingguan "`). Sudah di-hardcode di `googleSheets.service.ts` (`RANGE_PROGRES_MINGGUAN`) — kalau sheet-nya di-rename/dibuat ulang tanpa spasi, update konstanta itu juga.
-- `Ziyadah.progres_ayat` diisi guru sebagai string persentase (mis. `"25%"`), bukan hitungan ayat — jangan dipakai untuk hitung ulang persen KPI, itu sebabnya sumber persen KPI Ziyadah tetap dari `Progres_Mingguan` (lihat di atas).
+**Found while developing against the v2 sheet currently in use (may not apply to other sheet instances, but the code is already defensive against this):**
+- Many string cells across the sheets have leading/trailing whitespace (e.g. `" STD0001 "`) — `googleSheets.service.ts` already trims all cell values on parse. Don't assume raw data is clean when adding a new field.
+- Date format is **inconsistent** across tabs: `Kehadiran`/`Ziyadah`/`Murojaah`/`Adab_Harian`/`Catatan_Anak` use `YYYY-MM-DD`, while `Tibyan`/`Tarbiyyah`/`Tugas_Rumah`/`Lesson_Plan_Mingguan`/`Progres_Mingguan` use `DD/MM/YYYY`. Always parse dates through `parseFlexibleDate()` in `src/lib/date.ts`, never `new Date(str)` directly — that mis-parses `DD/MM/YYYY`.
+- The `Progres_Mingguan` tab in the original spreadsheet has a **trailing space** in its tab name (`"Progres_Mingguan "`). This is already hardcoded in `googleSheets.service.ts` (`RANGE_PROGRES_MINGGUAN`) — if the sheet is ever renamed/recreated without the space, update that constant too.
+- `Ziyadah.progres_ayat` is filled in by teachers as a percentage string (e.g. `"25%"`), not an ayat count — don't use it to recompute the KPI percentage; that's why the Ziyadah KPI percentage source stays `Progres_Mingguan` (see above).
 
-## Badge KPI — Threshold (locked, pakai `>` konsisten di semua batas)
+## KPI Badge — Thresholds (locked, per category — updated 2026-07-15)
+
+**Update (decided during development)**: the old threshold (5 tiers, same for
+every category) was replaced by the product owner with 4 tiers, different for
+Adab Harian vs. the other categories. Implemented in `src/lib/kpi.ts`
+(`getBadgeLabel(value, kategori)`), called from `makeKPI()` in
+`dashboard.service.ts`, passing the KPI `key` (`'adab'` vs. other categories)
+as `kategori`.
+
+Adab Harian:
 
 | Range | Label |
 |---|---|
-| 0% – 50% | Perlu Perhatian |
-| >50% – 70% | Rajin |
-| >70% – 80% | Baik |
-| >80% – 90% | Baik Sekali |
-| >90% – 100% | Sangat Baik |
+| <20% | Butuh Pendampingan |
+| <50% | Butuh Bimbingan |
+| <80% | Baik |
+| ≥80% | Sangat Baik |
 
-Berlaku sama untuk semua 6 kategori KPI (Kehadiran, Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian).
+Other categories (Kehadiran, Ziyadah, Murojaah, Tibyan, Tarbiyyah):
+
+| Range | Label |
+|---|---|
+| <20% | Pasif |
+| <50% | Mengikuti Sedikit |
+| <80% | Mengikuti Sebagian |
+| ≥80% | Aktif Mengikuti |
 
 ## API Contract (v2, read-only, prefix `/api/v1`)
 
@@ -149,19 +168,19 @@ Berlaku sama untuk semua 6 kategori KPI (Kehadiran, Ziyadah, Murojaah, Tibyan, T
 body: { id_santri, tanggal_lahir }
 response: { token/session, santri: { id, nama, kelas, foto_url } }
 ```
-+ rate limit per id_santri (mis. max 5 percobaan / 15 menit)
++ rate limit per id_santri (e.g. max 5 attempts / 15 minutes)
 
 ### `GET /api/v1/santri/:id/ringkasan`
-Satu endpoint agregat — mengambil semua data dashboard dalam satu kali panggilan
-server-side ke Sheets (bukan 6 panggilan terpisah per card, karena boros quota
-dan lambat). Struktur KPI **generic** (array of objects), supaya menambah/mengunci
-KPI baru tidak mengubah struktur response:
+A single aggregate endpoint — fetches all dashboard data in one server-side
+call to Sheets (not 6 separate calls per card, since that wastes quota and is
+slow). KPI structure is **generic** (array of objects), so adding/locking a
+new KPI doesn't change the response shape:
 ```json
 {
   "santri": { "nama": "...", "kelas": "...", "periode": "...", "semester": "..." },
   "kpi": [
-    { "key": "kehadiran", "label": "Kehadiran", "value": 83, "unit": "%", "detail": "...", "badge": "Rajin", "locked": false },
-    { "key": "ziyadah", "label": "Ziyadah", "value": 75, "unit": "%", "detail": "...", "badge": "Baik", "locked": true }
+    { "key": "kehadiran", "label": "Kehadiran", "value": 83, "unit": "%", "detail": "...", "badge": "Aktif Mengikuti", "locked": false },
+    { "key": "ziyadah", "label": "Ziyadah", "value": 75, "unit": "%", "detail": "...", "badge": "Mengikuti Sebagian", "locked": true }
   ],
   "progres_4_minggu": [ { "minggu": "Mg.1", "kehadiran": 80, "ziyadah": 60 } ],
   "lesson_plan": { "tema": "...", "hari": [ { "hari": "Senin", "kategori": "Tibyan", "materi": "..." } ] },
@@ -171,69 +190,88 @@ KPI baru tidak mengubah struktur response:
 ```
 
 ### `GET /api/v1/santri/:id/kehadiran?minggu=X`
-Satu-satunya halaman detail selain Ringkasan (sesuai sidebar yang cuma 2 menu aktif):
+The only detail page besides Ringkasan (matches the sidebar's 2 active menu items):
 ```json
 { "riwayat": [ { "tanggal": "...", "status": "Hadir", "catatan": "..." } ] }
 ```
 
 ## UI Layout (Ringkasan)
 
-- **Sidebar**: logo, menu Ringkasan (aktif) + Kehadiran (aktif), 5 menu lain locked
-- **Header**: profile santri (nama, kelas, tahun) kanan atas + periode belajar
-  (otomatis dari lesson plan) + semester
-- **6 KPI cards**: persen, detail posisi (mis. "Al-Baqarah 1-5, Hal 3/5"),
-  progress bar, badge label sesuai threshold
-- **Grafik Perkembangan 4 Minggu**: line chart per kategori
-- **Lesson Plan Mingguan**: per hari (Senin-Jumat), kategori + materi
-- **Catatan Anak**: catatan naratif dari guru
-- **Tugas di Rumah**: checklist tugas
+- **Sidebar**: logo (dynamic per santri's class — see "Implementation Status"),
+  Ringkasan menu (active) + Kehadiran (locked, see note below), 5 other menus locked
+- **Header**: santri profile (name, class, year) top right + learning period
+  (auto-derived from the lesson plan) + semester
+- **6 KPI cards**: percentage, position detail (e.g. "Al-Baqarah 1-5, Hal 3/5"),
+  progress bar, badge label per threshold
+- **Perkembangan 4 Minggu chart**: line chart per category
+- **Lesson Plan Mingguan**: per day (Mon-Fri), category + material
+- **Catatan Anak**: narrative note from the teacher
+- **Tugas di Rumah**: homework checklist
 
-## Status Implementasi (update per sesi terakhir)
+## Implementation Status (updated as of the last session)
 
-**Sudah dibangun:**
-- Halaman Ringkasan (`/dashboard`) versi v2 lengkap: 6 KPI card (compact,
-  semua live data — lihat catatan di "Scope v2"), grafik Perkembangan 4
-  Minggu (6 kategori), Lesson Plan Mingguan (posisi tengah, badge warna per
-  hari + ikon kategori, fallback state kalau guru belum isi), Catatan Anak
-  (nampilkan catatan terbaru saja, bukan list), Tugas di Rumah (checklist).
-  Chart / Lesson Plan / Catatan+Tugas disusun 3 kolom sama lebar & sama tinggi.
-- Header profil santri (nama, kelas, periode, semester) — kelas & periode
-  diambil live dari sheet `Kelas` dan `Lesson_Plan_Mingguan` (bukan field
-  statis), semester dihitung dari tanggal hari ini (konvensi kalender
-  sekolah: Ganjil = Jul–Des, Genap = Jan–Jun). Versi mobile: avatar
-  expand/collapse, bukan cuma avatar diam.
-- Data/service layer penuh untuk taksonomi v2 (`src/types/database.ts`,
+**Already built:**
+- The Ringkasan page (`/dashboard`) v2, complete: 6 KPI cards (compact,
+  all live data — see the note in "v2 Scope"), Perkembangan 4 Minggu chart
+  (6 categories), Lesson Plan Mingguan (middle position, color badge per
+  day + category icon, fallback state if the teacher hasn't filled it in),
+  Catatan Anak (shows only the latest note, not a list), Tugas di Rumah
+  (checklist). Chart / Lesson Plan / Catatan+Tugas are laid out as 3 equal-width,
+  equal-height columns.
+- Santri profile header (name, class, period, semester) — class & period are
+  fetched live from the `Kelas` and `Lesson_Plan_Mingguan` sheets (not static
+  fields), semester is computed from today's date (school calendar
+  convention: Ganjil/Odd = Jul–Dec, Genap/Even = Jan–Jun). Mobile version:
+  avatar expands/collapses, not just a static avatar.
+- Full data/service layer for the v2 taxonomy (`src/types/database.ts`,
   `src/services/googleSheets.service.ts`, `src/services/dashboard.service.ts`)
-  sudah reusable untuk konsumen lain (termasuk API routes kalau dibuat nanti).
+  already reusable for other consumers (including API routes if built later).
+- Dynamic sidebar logo per santri's class: `getHeaderInfo()` in
+  `dashboard.service.ts` now also returns `kelasId` (raw `id_kelas`,
+  e.g. `CLS001A`), threaded from `dashboard/layout.tsx` to `Sidebar`/`Header`
+  and then to `SidebarContent`. The logo mapping lives in `getLogoSrc()` in
+  `src/components/layout/Sidebar.tsx`: `CLS001A`/`CLS002B`/`CLS003C` →
+  `Logo_Daycare.jpeg`, `CLS004D` → `Logo_Taud.jpeg`, `CLSSD01`–`CLSSD06` →
+  `Logo_SD.jpeg`, other classes fall back to the default `logo.jpeg`. Logo
+  files live in `public/`. When adding a new class, update the
+  `DAYCARE_KELAS`/`TAUD_KELAS`/`SD_KELAS` arrays in that same file.
+- Tugas di Rumah (`HomeworkList.tsx`): the checklist is now a 2-column grid
+  from the `sm:` breakpoint up, with `max-h` + `overflow-y-auto` so a long
+  list scrolls inside the card instead of stretching the card / overlapping
+  content below it (applies at every breakpoint including mobile, not just desktop).
 
-**BELUM dibangun / deviasi dari kontrak di atas — penting buat sesi lanjutan:**
-- **API routes `/api/v1/...` di atas belum ada sama sekali.** Implementasi
-  saat ini memanggil `dashboard.service.ts` **langsung dari Server Component**
-  (`app/dashboard/page.tsx`, `app/dashboard/layout.tsx`), bukan lewat HTTP
-  endpoint. Service layer-nya sudah dalam bentuk yang gampang dibungkus jadi
-  route handler kalau/waktu Fase 3 (mobile) butuh endpoint asli — tinggal
-  buat `app/api/v1/santri/[id]/ringkasan/route.ts` dkk yang manggil fungsi
-  yang sama.
-- Rate limiting login (max 5 percobaan/15 menit) **belum diimplementasi** —
-  `app/api/login/route.ts` saat ini cuma cek `id_santri` + `tanggal_lahir`
-  tanpa batas percobaan. Ini WAJIB masuk v2 menurut scope di atas, belum selesai.
-- Halaman detail `/dashboard/kehadiran` belum dibuat, jadi Kehadiran masih
-  tampil locked di sidebar walau KPI card-nya sudah live.
+**Not yet built / deviations from the contract above — important for follow-up sessions:**
+- **The `/api/v1/...` routes above don't exist at all yet.** The current
+  implementation calls `dashboard.service.ts` **directly from a Server
+  Component** (`app/dashboard/page.tsx`, `app/dashboard/layout.tsx`), not
+  through an HTTP endpoint. The service layer is already shaped so it's easy
+  to wrap into a route handler once/if Phase 3 (mobile) needs a real
+  endpoint — just create `app/api/v1/santri/[id]/ringkasan/route.ts` etc.
+  calling the same functions.
+- Login rate limiting (max 5 attempts/15 minutes) is **not implemented yet**
+  — `app/api/login/route.ts` currently only checks `id_santri` +
+  `tanggal_lahir` with no attempt limit. This is REQUIRED for v2 per the
+  scope above and isn't done yet.
+- The `/dashboard/kehadiran` detail page hasn't been built yet, so Kehadiran
+  still shows locked in the sidebar even though its KPI card is already live.
 
-## Prinsip Kerja untuk Sesi Ini
+## Working Principles for This Session
 
-1. Jangan rebuild seluruh project — pertahankan Next.js config, koneksi Sheets
-   API, deployment Vercel. Fokus rebuild di: skema data, komponen UI/KPI, API layer.
-2. Kontrak API didesain agnostik terhadap sumber data, supaya saat Fase 2
-   migrasi ke Postgres/MySQL, hanya implementasi internal API route yang
-   berubah — bukan kontrak request/response ke frontend/mobile.
-3. Kalau muncul ide fitur/KPI baru selama development, catat di bagian
-   "Backlog v2.1 / v3" di bawah — jangan disisipkan ke scope v2 yang sedang berjalan.
+1. Don't rebuild the whole project — keep the Next.js config, Sheets API
+   connection, Vercel deployment. Focus the rebuild on: data schema, KPI/UI
+   components, API layer.
+2. The API contract is designed to be data-source-agnostic, so that when
+   Phase 2 migrates to Postgres/MySQL, only the internal API route
+   implementation changes — not the request/response contract to the
+   frontend/mobile.
+3. If a new feature/KPI idea comes up during development, log it under
+   "Backlog v2.1 / v3" below — don't fold it into the v2 scope that's
+   currently in progress.
 
-## Backlog v2.1 / v3 (belum dikerjakan, jangan disentuh sekarang)
+## Backlog v2.1 / v3 (not yet worked on, don't touch now)
 
-- Fitur "Lembar Orang Tua" (dibatalkan di v2, mungkin dipertimbangkan lagi nanti)
-- Halaman detail untuk Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian
-- Write API penuh (entry data guru via web/mobile) — masuk Fase 2
-- Auth berbasis password/Google Auth — masuk Fase 2
-- API untuk Flutter mobile — masuk Fase 3
+- "Lembar Orang Tua" (Parent Sheet) feature (cancelled in v2, might be reconsidered later)
+- Detail pages for Ziyadah, Murojaah, Tibyan, Tarbiyyah, Adab Harian
+- Full write API (teacher data entry via web/mobile) — goes into Phase 2
+- Password/Google Auth-based auth — goes into Phase 2
+- API for the Flutter mobile app — goes into Phase 3

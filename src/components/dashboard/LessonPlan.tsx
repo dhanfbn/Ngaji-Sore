@@ -35,13 +35,16 @@ function CategoryIcon({ kategori }: { kategori: string }) {
 // ── Component ──────────────────────────────────────────────────
 export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
   return (
-    <Card className="h-full card-3d overflow-hidden bg-white py-0">
-      <div className="bg-violet-600 px-5 sm:px-6 py-3 flex items-center gap-2 shrink-0">
-        <ClipboardList className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
-        <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-white">Lesson Plan Mingguan</h3>
-      </div>
+    <Card className="h-full card-3d overflow-hidden bg-white">
+      <CardContent className="flex flex-col h-full p-5 sm:p-6">
+        <div className="inline-flex items-center gap-2 bg-violet-600 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
+          <span className="w-6 h-6 rounded-full bg-white text-violet-600 flex items-center justify-center shrink-0">
+            <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />
+          </span>
+          <span className="text-xs font-extrabold uppercase tracking-wide text-white">Lesson Plan Mingguan</span>
+        </div>
 
-      <CardContent className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-6 py-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
         {hari.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 text-center">
             <span className="text-4xl opacity-80" aria-hidden="true">📋</span>
@@ -55,15 +58,15 @@ export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
                 <span className="font-bold">Tema Minggu Ini:</span> {tema}
               </p>
             )}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {hari.map((d, i) => (
-                <div key={i} className="rounded-xl border border-slate-100 px-3 py-2.5">
-                  <span className={`inline-block text-center text-xs font-bold rounded-full px-3 py-1 mb-1.5 ${HARI_COLOR[d.hari] ?? 'bg-slate-200 text-slate-700'}`}>
+                <div key={i} className="flex items-center gap-3">
+                  <span className={`w-16 shrink-0 text-center text-xs font-bold rounded-full py-1.5 ${HARI_COLOR[d.hari] ?? 'bg-slate-200 text-slate-700'}`}>
                     {d.hari}
                   </span>
-                  <div className="flex items-start gap-2">
-                    <span className="shrink-0 mt-0.5"><CategoryIcon kategori={d.kategori} /></span>
-                    <span className="text-sm text-foreground leading-snug">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="shrink-0"><CategoryIcon kategori={d.kategori} /></span>
+                    <span className="text-sm text-foreground leading-snug truncate">
                       <span className="font-semibold">{d.kategori}:</span> {d.materi}
                     </span>
                   </div>
@@ -72,6 +75,7 @@ export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
             </div>
           </>
         )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -80,13 +84,14 @@ export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
 // ── Skeleton ───────────────────────────────────────────────────
 export function LessonPlanCardSkeleton() {
   return (
-    <Card className="card-3d overflow-hidden bg-white py-0">
-      <div className="bg-violet-600 px-5 sm:px-6 py-3">
-        <Skeleton className="h-5 w-44 rounded bg-violet-400" />
-      </div>
-      <CardContent className="px-5 sm:px-6 py-4 space-y-2.5">
+    <Card className="card-3d overflow-hidden bg-white">
+      <CardContent className="p-5 sm:p-6 space-y-3">
+        <Skeleton className="h-7 w-48 rounded-full" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-11 w-full rounded-xl" />
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-7 w-16 rounded-full shrink-0" />
+            <Skeleton className="h-5 flex-1 rounded" />
+          </div>
         ))}
       </CardContent>
     </Card>

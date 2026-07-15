@@ -18,11 +18,12 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      <Sidebar />
+      <Sidebar kelasId={headerInfo.kelasId} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           studentName={headerInfo.studentName}
           kelasNama={headerInfo.kelasNama}
+          kelasId={headerInfo.kelasId}
           periode={headerInfo.periode}
           semester={headerInfo.semester}
         />

@@ -38,11 +38,14 @@ const TREND_ICON = {
 };
 
 const BADGE_EMOJI: Record<string, string> = {
-  'Perlu Perhatian': '⚠️',
-  'Rajin': '💪',
+  'Butuh Pendampingan': '🆘',
+  'Butuh Bimbingan': '🧭',
   'Baik': '👍',
-  'Baik Sekali': '⭐',
   'Sangat Baik': '💎',
+  'Pasif': '😴',
+  'Mengikuti Sedikit': '🙂',
+  'Mengikuti Sebagian': '💪',
+  'Aktif Mengikuti': '🌟',
 };
 
 // ── Component ──────────────────────────────────────────────────
