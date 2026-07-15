@@ -75,9 +75,9 @@ export function Header({
         {/* App Title */}
         <div className="min-w-0">
           <h1 className="font-bold text-base md:text-2xl text-foreground tracking-tight truncate">
-            Laporan Progres Belajar
+            Laporan Progres Belajar Anak
           </h1>
-          <p className="text-xs md:text-sm text-muted-foreground font-medium">Ruang Belajar Quran Anak</p>
+          <p className="text-xs md:text-sm text-muted-foreground font-medium">Belajar Bersama, Tumbuh Bersama</p>
         </div>
       </div>
 

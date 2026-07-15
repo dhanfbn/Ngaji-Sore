@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           Assalamu&apos;alaikum, {studentName}! ✨
         </h2>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Berikut ringkasan perkembangan ngaji kamu sejauh ini.
+          Berikut ringkasan perkembangan belajar kamu sejauh ini.
         </p>
       </div>
 

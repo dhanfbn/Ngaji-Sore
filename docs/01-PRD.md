@@ -1,10 +1,10 @@
-# PRD — Laporan Progres Belajar Ngaji Sore
+# PRD — Laporan Progres Belajar KISFA
 
 ## 1. Overview
 
 ### Project Name
 
-Laporan Progres Belajar Ngaji Sore – Ruang Belajar Quran Anak
+Laporan Progres Belajar KISFA – Ruang Belajar Quran Anak
 
 ### Project Type
 

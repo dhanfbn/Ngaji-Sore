@@ -61,7 +61,7 @@ function SidebarContent({ onNavigate, kelasId }: { onNavigate?: () => void; kela
           <img src="logo.jpeg" alt="logo" />
         </div> */}
         {/* <h2 className="font-poppins font-bold text-lg text-slate-800 tracking-tight text-center leading-tight">
-          Ngaji Sore
+          KISFA
         </h2> */}
         {/* <p className="font-nunito text-xs text-green-600 font-semibold mt-1">Belajar • Mengaji • Berkah</p> */}
       </div>
@@ -104,9 +104,9 @@ function SidebarContent({ onNavigate, kelasId }: { onNavigate?: () => void; kela
       <div className="p-4 border-t border-slate-100 bg-white">
         <div className="bg-brand-green/10 rounded-2xl p-4 text-center mb-4 border-2 border-brand-green/20">
           <div className="text-3xl mb-2" aria-hidden="true">👨‍👩‍👧‍👦</div>
-          <p className="font-nunito font-bold text-slate-800 text-sm mb-1">Terima kasih</p>
+          <p className="font-nunito font-bold text-slate-800 text-sm mb-1">Aba Ummah</p>
           <p className="font-nunito text-xs text-slate-500 leading-relaxed">
-            atas dukungan Ayah Bunda. Semangat ngaji hari ini, untuk bekal selamanya. 💚
+            Semangat belajar hari ini, untuk bekal di akhirat nanti 💚
           </p>
         </div>
 

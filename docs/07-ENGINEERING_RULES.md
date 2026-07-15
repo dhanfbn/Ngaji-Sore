@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the engineering standards, architecture constraints, naming conventions, and development guidelines for the Ngaji Sore Progress Dashboard project.
+This document defines the engineering standards, architecture constraints, naming conventions, and development guidelines for the KISFA Progress Dashboard project.
 
 All generated code must follow these rules.
 

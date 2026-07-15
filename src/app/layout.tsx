@@ -18,8 +18,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: 'Ngaji Sore — Laporan Progres Belajar',
-  description: 'Pantau perkembangan belajar Al-Quran santri di Ngaji Sore. Ruang Belajar Quran Anak.',
+  title: 'KISFA — Laporan Progres Belajar',
+  description: 'Pantau perkembangan belajar Al-Quran santri di KISFA. Ruang Belajar Quran Anak.',
 };
 
 export default function RootLayout({

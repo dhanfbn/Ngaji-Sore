@@ -269,7 +269,7 @@ Application Logo
 
 Title:
 
-"Laporan Progres Belajar Ngaji Sore"
+"Laporan Progres Belajar KISFA"
 
 Subtitle:
 

@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* ─── Design System: Ngaji Sore ─── */
+  /* ─── Design System: KISFA ─── */
   /* Brand colors mapped to Tailwind utilities */
   --color-brand-green: #10B981;   /* Primary brand color — CTAs, active states */
   --color-brand-blue: #3B82F6;    /* Secondary — kehadiran, links */
@@ -64,7 +64,7 @@
 }
 
 :root {
-  /* ─── Ngaji Sore Design System: Light Mode ─── */
+  /* ─── KISFA Design System: Light Mode ─── */
   --background: #F8FAFC;                /* app-bg from design system */
   --foreground: #1E293B;                /* slate-800 — primary text */
   --card: #FFFFFF;

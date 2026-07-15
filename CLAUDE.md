@@ -1,4 +1,4 @@
-# Ngaji-Sore — Project Context
+# KISFA (formerly Ngaji-Sore) — Project Context
 
 > This file is the source of truth for cross-session Claude Code context.
 > Paste/replace this file's content at the repo root before starting a new session.
@@ -8,11 +8,12 @@
 
 ## Project Summary
 
-Ngaji-Sore is a web app for reporting Quran-recitation (ngaji) learning progress
-for students (santri) to their parents/guardians. Stakeholders: santri, wali murid
-(parent/guardian), guru (teacher).
+KISFA (in-app brand name; repo/codebase still named Ngaji-Sore) is a web app
+for reporting Quran-recitation (ngaji) learning progress for students (santri)
+to their parents/guardians. Stakeholders: santri, wali murid (parent/guardian),
+guru (teacher).
 
-- **Repo**: github.com/dhanfbn/Ngaji-Sore
+- **Repo**: github.com/dhanfbn/Ngaji-Sore (repo name unchanged — only the in-app brand/title changed to KISFA)
 - **Framework**: Next.js
 - **Deployment**: Vercel
 - **Data source (v2)**: Google Sheets API (read-only)
