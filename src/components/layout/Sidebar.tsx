@@ -106,7 +106,7 @@ function SidebarContent({ onNavigate, kelasId }: { onNavigate?: () => void; kela
           <div className="text-3xl mb-2" aria-hidden="true">👨‍👩‍👧‍👦</div>
           <p className="font-nunito font-bold text-slate-800 text-sm mb-1">Aba Ummah</p>
           <p className="font-nunito text-xs text-slate-500 leading-relaxed">
-            Semangat belajar hari ini, untuk bekal di akhirat nanti 💚
+            Terimakasih atas dukungan Aba &  Ummah. Semangat belajar hari ini, untuk bekal di akhirat nanti 💚
           </p>
         </div>
 
