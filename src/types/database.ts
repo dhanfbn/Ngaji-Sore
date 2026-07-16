@@ -14,6 +14,20 @@ const safeNumber = z.preprocess((val) => {
   return 0;
 }, z.number());
 
+// Progres_Mingguan's _pct cells are entered as a 0-1 fraction with a comma
+// decimal separator (e.g. "0,85" meaning 85%) — convert to a 0-100 percentage.
+const percentFraction = z.preprocess((val) => {
+  if (typeof val === 'string') {
+    const cleaned = val.replace(',', '.').replace('%', '').trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed * 100;
+  }
+  if (typeof val === 'number') {
+    return isNaN(val) ? 0 : val * 100;
+  }
+  return 0;
+}, z.number());
+
 export const SantriSchema = z.object({
   id_santri: z.string(),
   nama: z.string(),
@@ -165,12 +179,12 @@ export const ProgresMingguanSchema = z.object({
   id_progres: z.string(),
   id_santri: z.string(),
   tanggal: z.string(),
-  kehadiran_pct: safeNumber,
-  ziyadah_pct: safeNumber,
-  murojaah_pct: safeNumber,
-  tibyan_pct: safeNumber,
-  tarbiyyah_pct: safeNumber,
-  adab_pct: safeNumber,
+  kehadiran_pct: percentFraction,
+  ziyadah_pct: percentFraction,
+  murojaah_pct: percentFraction,
+  tibyan_pct: percentFraction,
+  tarbiyyah_pct: percentFraction,
+  adab_pct: percentFraction,
   // The old numeric minggu_ke column was replaced (not duplicated) by key_minggu.
   key_minggu: z.string().optional(),
 });

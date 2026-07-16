@@ -23,6 +23,7 @@ export interface HeaderInfo {
 }
 
 const HARI_ORDER = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad', 'Minggu'];
+const ADAB_KATEGORI_ORDER = ['Sopan', 'Santun', 'Kedisiplinan'];
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 function sortByDateDesc<T>(rows: T[], getDate: (row: T) => string): T[] {
@@ -126,7 +127,7 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
   const weekKehadiran = kehadiran.filter(k => k.key_minggu === weekKey);
   const totalKehadiran = weekKehadiran.length;
   const hadirCount = weekKehadiran.filter(k => k.status.toLowerCase() === 'hadir').length;
-  const kehadiranPct = totalKehadiran > 0 ? Math.round((hadirCount / totalKehadiran) * 100) : 0;
+  const kehadiranPct = totalKehadiran > 0 ? Math.round((hadirCount / totalKehadiran) * 1000) / 10 : 0;
 
   // --- Everything else: the selected week's manually-aggregated row from Progres_Mingguan ---
   // (per CLAUDE.md: these percentages must NOT be recomputed on-the-fly from raw rows)
@@ -136,7 +137,10 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
   const weekMurojaah = sortByDateDesc(murojaah.filter(m => m.key_minggu === weekKey), m => m.tanggal)[0];
   const weekTibyan = sortByDateDesc(tibyan.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
   const weekTarbiyyah = sortByDateDesc(tarbiyyah.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
-  const weekAdab = sortByDateDesc(adabHarian.filter(a => a.key_minggu === weekKey), a => a.tanggal)[0];
+  // Adab_Harian has one row per kategori (Sopan / Santun / Kedisiplinan) per week — show all three.
+  const weekAdabRows = adabHarian
+    .filter(a => a.key_minggu === weekKey)
+    .sort((a, b) => ADAB_KATEGORI_ORDER.indexOf(a.kategori) - ADAB_KATEGORI_ORDER.indexOf(b.kategori));
 
   const kpi: KPIEntry[] = [
     makeKPI('kehadiran', 'Kehadiran', kehadiranPct, totalKehadiran > 0 ? `Hadir ${hadirCount} dari ${totalKehadiran} pertemuan` : 'Belum ada data'),
@@ -149,7 +153,7 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
     makeKPI('tarbiyyah', 'Tarbiyyah', weekProgres?.tarbiyyah_pct ?? 0,
       weekTarbiyyah?.tema ? `${weekTarbiyyah.tema}` : 'Belum ada data'),
     makeKPI('adab', 'Adab Harian', weekProgres?.adab_pct ?? 0,
-      weekAdab ? `${weekAdab.kategori}: ${weekAdab.nilai}` : 'Belum ada data'),
+      weekAdabRows.length > 0 ? weekAdabRows.map(a => `${a.kategori}: ${a.nilai}`).join(', ') : 'Belum ada data'),
   ];
 
   // --- 4-week chart: trailing weeks from the manual Progres_Mingguan history ---

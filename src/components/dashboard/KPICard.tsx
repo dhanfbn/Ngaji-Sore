@@ -74,13 +74,13 @@ export function KPICard({ title, value, detail, label, icon: Icon, color, trend,
         {/* Value */}
         <div className="flex items-baseline gap-1 mb-1">
           <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
-            {value}
+            {value.toFixed(1)}
           </span>
           <span className="text-sm font-semibold text-muted-foreground">%</span>
           {trend && <span className="ml-0.5">{TREND_ICON[trend]}</span>}
         </div>
 
-        <p className="text-xs text-muted-foreground truncate mb-2.5">{detail}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 min-h-[2rem] mb-2.5" title={detail}>{detail}</p>
 
         {/* Progress bar */}
         <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
