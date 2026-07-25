@@ -48,10 +48,14 @@ export default async function KehadiranPage({ searchParams }: KehadiranPageProps
         <>
           {/* ── Ringkasan / Klasifikasi / Kalender ─────────────── */}
           <section aria-label="Ringkasan kehadiran">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:items-stretch">
-              <AttendanceSummaryCard monthLabel={monthLabel} summary={summary} />
-              <AttendanceClassificationCard summary={summary} />
-              <AttendanceCalendarCard monthLabel={monthLabel} calendarDays={calendarDays} />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:items-stretch">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:col-span-2">
+                <AttendanceSummaryCard monthLabel={monthLabel} summary={summary} />
+                <AttendanceClassificationCard summary={summary} />
+              </div>
+              <div className="lg:col-span-3">
+                <AttendanceCalendarCard monthLabel={monthLabel} calendarDays={calendarDays} />
+              </div>
             </div>
           </section>
 

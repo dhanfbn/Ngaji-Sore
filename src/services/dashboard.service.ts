@@ -4,8 +4,9 @@ import { getBadgeLabel } from '@/lib/kpi';
 import type {
   KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption,
   MonthOption, AttendanceCategory, AttendanceCalendarDay, AttendanceLogRow, KehadiranDetailData,
+  ZiyadahDetailData, ZiyadahLogRow, ZiyadahStatus, ZiyadahPencapaianLevel,
 } from '@/types/dashboard';
-import type { CatatanAnakRow, KehadiranRow, LessonPlanMingguanRow } from '@/types/database';
+import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
 
 export interface DashboardData {
   kpi: KPIEntry[];
@@ -223,11 +224,11 @@ function classifyAttendanceStatus(status: string): AttendanceCategory {
   return 'alpa'; // "alpa" / "tanpa keterangan" / any other unrecognized value
 }
 
-/** Distinct months present in the santri's Kehadiran rows, newest first. */
-function getMonthsAvailable(rows: KehadiranRow[]): MonthOption[] {
+/** Distinct months present in a set of dated rows, newest first. */
+function getMonthsAvailable<T>(rows: T[], getDate: (row: T) => string): MonthOption[] {
   const map = new Map<string, MonthOption>();
   for (const r of rows) {
-    const date = parseFlexibleDate(r.tanggal);
+    const date = parseFlexibleDate(getDate(r));
     if (!date) continue;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     if (!map.has(key)) {
@@ -253,7 +254,7 @@ export async function getKehadiranDetail(id_santri: string, selectedMonthParam?:
 
   // Rows need a parseable date and a non-empty status to count as a real school day.
   const validRows = kehadiran.filter(r => r.status && parseFlexibleDate(r.tanggal));
-  const months = getMonthsAvailable(validRows);
+  const months = getMonthsAvailable(validRows, r => r.tanggal);
   const selectedMonth = resolveSelectedMonth(months, selectedMonthParam, new Date());
   const monthLabel = months.find(m => m.key === selectedMonth)?.label ?? '-';
 
@@ -363,5 +364,104 @@ export async function getKehadiranDetail(id_santri: string, selectedMonthParam?:
     summary: { totalHariSekolah, hadirCount, attendancePct, tepatWaktuCount, terlambatCount, rataRataTerlambatMenit, sakitCount, izinCount, alpaCount },
     calendarDays,
     log,
+  };
+}
+
+// ── Ziyadah detail page ──────────────────────────────────────────
+
+/** "25%" / "43" / "0,8" -> a 0-100 number. Returns 0 for empty/unparseable values. */
+function parsePercentString(value: string | undefined): number {
+  if (!value) return 0;
+  const cleaned = value.replace('%', '').replace(',', '.').trim();
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+export async function getZiyadahDetail(id_santri: string, selectedMonthParam?: string): Promise<ZiyadahDetailData> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+  const ziyadah = await googleSheetsService.getZiyadahBySantri(id_santri);
+
+  const validRows = ziyadah.filter(r => r.surat && parseFlexibleDate(r.tanggal));
+  const months = getMonthsAvailable(validRows, r => r.tanggal);
+  const selectedMonth = resolveSelectedMonth(months, selectedMonthParam, new Date());
+  const monthLabel = months.find(m => m.key === selectedMonth)?.label ?? '-';
+
+  if (!selectedMonth) {
+    return {
+      studentName: santri?.nama || 'Santri',
+      months,
+      selectedMonth: '',
+      monthLabel: '-',
+      summary: { totalAyatDihafal: 0, totalTargetAyat: 0, pct: 0, surahBaruCount: 0, rataRataAyatPerHari: 0 },
+      pencapaian: { lancarAyat: 0, cukupAyat: 0, perluAyat: 0 },
+      log: [],
+      catatanStrategi: 'Belum ada catatan strategi dari guru.',
+      targetPekanDepan: 'Belum ada target untuk pekan depan.',
+    };
+  }
+
+  const monthRows = validRows
+    .filter(r => {
+      const d = parseFlexibleDate(r.tanggal)!;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+    })
+    .sort((a, b) => parseFlexibleDate(a.tanggal)!.getTime() - parseFlexibleDate(b.tanggal)!.getTime());
+
+  let totalAyatDihafal = 0, totalTargetAyat = 0;
+  let lancarAyat = 0, cukupAyat = 0, perluAyat = 0;
+  const distinctDates = new Set<string>();
+  const distinctSurah = new Set<string>();
+
+  const log: ZiyadahLogRow[] = monthRows.map((r, i) => {
+    const date = parseFlexibleDate(r.tanggal)!;
+    const ayatRange = Math.max(0, r.ayat_sampai - r.ayat_dari + 1);
+    const progresPct = parsePercentString(r.progres_ayat);
+    const status: ZiyadahStatus = progresPct >= 100 ? 'hafal' : 'proses';
+    const pencapaian: ZiyadahPencapaianLevel = progresPct >= 80 ? 'lancar' : progresPct >= 50 ? 'cukup' : 'perlu';
+
+    totalAyatDihafal += ayatRange;
+    totalTargetAyat += r.target_ayat;
+    distinctDates.add(r.tanggal);
+    distinctSurah.add(r.surat);
+    if (pencapaian === 'lancar') lancarAyat += ayatRange;
+    else if (pencapaian === 'cukup') cukupAyat += ayatRange;
+    else perluAyat += ayatRange;
+
+    return {
+      no: i + 1,
+      tanggal: `${date.getDate()} ${BULAN[date.getMonth()]}`,
+      hari: HARI_BY_WEEKDAY[date.getDay()],
+      surat: r.surat,
+      ayatDari: r.ayat_dari,
+      ayatSampai: r.ayat_sampai,
+      progresPct,
+      targetAyat: r.target_ayat,
+      status,
+      pencapaian,
+      catatanGuru: r.catatan_guru || '',
+    };
+  });
+
+  const pct = totalTargetAyat > 0 ? Math.round((totalAyatDihafal / totalTargetAyat) * 1000) / 10 : 0;
+  const rataRataAyatPerHari = distinctDates.size > 0 ? Math.round((totalAyatDihafal / distinctDates.size) * 10) / 10 : 0;
+
+  const latest = monthRows[monthRows.length - 1];
+  const catatanStrategi = latest?.catatan_guru || 'Belum ada catatan strategi dari guru bulan ini.';
+  const targetPekanDepan = latest
+    ? (parsePercentString(latest.progres_ayat) < 100
+        ? `Lanjutkan hafalan ${latest.surat} ayat ${latest.ayat_sampai + 1}-${latest.target_ayat}.`
+        : `Lanjutkan ke surah berikutnya setelah ${latest.surat}.`)
+    : 'Belum ada target untuk pekan depan.';
+
+  return {
+    studentName: santri?.nama || 'Santri',
+    months,
+    selectedMonth,
+    monthLabel,
+    summary: { totalAyatDihafal, totalTargetAyat, pct, surahBaruCount: distinctSurah.size, rataRataAyatPerHari },
+    pencapaian: { lancarAyat, cukupAyat, perluAyat },
+    log,
+    catatanStrategi,
+    targetPekanDepan,
   };
 }

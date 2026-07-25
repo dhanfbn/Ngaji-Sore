@@ -33,22 +33,12 @@ export function AttendanceCalendarCard({ monthLabel, calendarDays }: AttendanceC
 
   return (
     <Card className="h-full card-3d overflow-hidden bg-white">
-      <CardContent className="flex flex-col h-full p-5 sm:p-6">
-        <div className="inline-flex items-center gap-2 bg-blue-500 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
+      <CardContent className="flex flex-col h-full p-5 sm:p-8">
+        <div className="inline-flex items-center gap-2 bg-blue-500 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 sm:mb-6 self-start shrink-0">
           <span className="w-6 h-6 rounded-full bg-white text-blue-500 flex items-center justify-center shrink-0">
             <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
           <span className="text-xs font-extrabold uppercase tracking-wide text-white">Kalender Kehadiran</span>
-        </div>
-
-        {/* Legend */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
-          {LEGEND.map(l => (
-            <span key={l.status} className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${l.dot}`} aria-hidden="true" />
-              {l.label}
-            </span>
-          ))}
         </div>
 
         {calendarDays.length === 0 ? (
@@ -57,11 +47,11 @@ export function AttendanceCalendarCard({ monthLabel, calendarDays }: AttendanceC
             <p className="text-sm font-semibold text-slate-400">Belum ada data</p>
           </div>
         ) : (
-          <div className="flex-1">
-            <p className="text-sm font-bold text-foreground text-center mb-2">{monthLabel}</p>
-            <div className="grid grid-cols-7 gap-1 text-center">
+          <div className="flex-1 flex flex-col">
+            <p className="text-base sm:text-lg font-bold text-foreground text-center mb-3 sm:mb-4">{monthLabel}</p>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center">
               {HARI_SINGKAT.map(h => (
-                <span key={h} className="text-[10px] font-bold text-muted-foreground py-1">{h}</span>
+                <span key={h} className="text-[10px] sm:text-xs font-bold text-muted-foreground py-1">{h}</span>
               ))}
               {Array.from({ length: leadingBlanks }).map((_, i) => (
                 <span key={`blank-${i}`} />
@@ -69,10 +59,20 @@ export function AttendanceCalendarCard({ monthLabel, calendarDays }: AttendanceC
               {calendarDays.map(d => (
                 <span
                   key={d.day}
-                  className={`aspect-square flex items-center justify-center rounded-md text-[11px] font-bold ${DAY_CELL_STYLE[d.status]}`}
+                  className={`aspect-square flex items-center justify-center rounded-md sm:rounded-lg text-[11px] sm:text-sm font-bold ${DAY_CELL_STYLE[d.status]}`}
                   title={LEGEND.find(l => l.status === d.status)?.label ?? 'Belum ada data'}
                 >
                   {d.day}
+                </span>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-border">
+              {LEGEND.map(l => (
+                <span key={l.status} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground font-medium">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${l.dot}`} aria-hidden="true" />
+                  {l.label}
                 </span>
               ))}
             </div>

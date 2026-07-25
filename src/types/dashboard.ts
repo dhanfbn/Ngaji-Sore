@@ -95,3 +95,49 @@ export interface KehadiranDetailData {
   calendarDays: AttendanceCalendarDay[];
   log: AttendanceLogRow[];
 }
+
+// ── Ziyadah detail page ──────────────────────────────────────────
+
+export type ZiyadahStatus = 'hafal' | 'proses';
+/** Progress-based proxy, NOT a teacher-judged fluency rating — see progresPct. */
+export type ZiyadahPencapaianLevel = 'lancar' | 'cukup' | 'perlu';
+
+export interface ZiyadahLogRow {
+  no: number;
+  tanggal: string;
+  hari: string;
+  surat: string;
+  ayatDari: number;
+  ayatSampai: number;
+  progresPct: number;
+  targetAyat: number;
+  status: ZiyadahStatus;
+  pencapaian: ZiyadahPencapaianLevel;
+  catatanGuru: string;
+}
+
+export interface ZiyadahSummary {
+  totalAyatDihafal: number;
+  totalTargetAyat: number;
+  pct: number;
+  surahBaruCount: number;
+  rataRataAyatPerHari: number;
+}
+
+export interface ZiyadahPencapaian {
+  lancarAyat: number;
+  cukupAyat: number;
+  perluAyat: number;
+}
+
+export interface ZiyadahDetailData {
+  studentName: string;
+  months: MonthOption[];
+  selectedMonth: string;
+  monthLabel: string;
+  summary: ZiyadahSummary;
+  pencapaian: ZiyadahPencapaian;
+  log: ZiyadahLogRow[];
+  catatanStrategi: string;
+  targetPekanDepan: string;
+}

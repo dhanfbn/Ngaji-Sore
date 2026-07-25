@@ -30,12 +30,12 @@ function getLogoSrc(kelasId?: string): string {
   return '/logo.jpeg';
 }
 
-// v2 scope: only Ringkasan + Kehadiran are active; the other 5 KPI categories
-// render locked until their detail pages are built.
+// v2 scope: Ringkasan, Kehadiran, and Ziyadah are active; the remaining 4 KPI
+// categories render locked until their detail pages are built.
 const navItems = [
   { name: 'Ringkasan', icon: Home, href: '/dashboard', locked: false },
   { name: 'Kehadiran', icon: CalendarDays, href: '/dashboard/kehadiran', locked: false },
-  { name: 'Ziyadah', icon: BookOpen, href: '#', locked: true },
+  { name: 'Ziyadah', icon: BookOpen, href: '/dashboard/ziyadah', locked: false },
   { name: 'Murojaah', icon: RotateCcw, href: '#', locked: true },
   { name: 'Tibyan', icon: Type, href: '#', locked: true },
   { name: 'Tarbiyyah', icon: GraduationCap, href: '#', locked: true },
