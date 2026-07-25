@@ -40,3 +40,58 @@ export interface WeekOption {
   /** e.g. "13 – 17 Jul 2026" */
   label: string;
 }
+
+// ── Kehadiran detail page ────────────────────────────────────────
+
+export interface MonthOption {
+  /** e.g. "2026-04" */
+  key: string;
+  /** e.g. "April 2026" */
+  label: string;
+}
+
+export type AttendanceCategory = 'hadir' | 'sakit' | 'izin' | 'alpa';
+export type PunctualityStatus = 'tepat_waktu' | 'terlambat' | null;
+
+export interface AttendanceCalendarDay {
+  day: number;
+  /** raw sheet date string for this day, only set when a Kehadiran row exists */
+  date: string | null;
+  status: 'hadir_tepat' | 'hadir_terlambat' | 'sakit' | 'izin' | 'alpa' | 'none';
+  /** 0-6, Sun-Sat (Date.getDay()) */
+  weekday: number;
+}
+
+export interface AttendanceLogRow {
+  no: number;
+  tanggal: string;
+  hari: string;
+  status: AttendanceCategory;
+  punctuality: PunctualityStatus;
+  terlambatMenit: number | null;
+  jamMasuk: string;
+  jamPulang: string;
+  catatan: string;
+}
+
+export interface AttendanceSummary {
+  totalHariSekolah: number;
+  hadirCount: number;
+  attendancePct: number;
+  tepatWaktuCount: number;
+  terlambatCount: number;
+  rataRataTerlambatMenit: number;
+  sakitCount: number;
+  izinCount: number;
+  alpaCount: number;
+}
+
+export interface KehadiranDetailData {
+  studentName: string;
+  months: MonthOption[];
+  selectedMonth: string;
+  monthLabel: string;
+  summary: AttendanceSummary;
+  calendarDays: AttendanceCalendarDay[];
+  log: AttendanceLogRow[];
+}

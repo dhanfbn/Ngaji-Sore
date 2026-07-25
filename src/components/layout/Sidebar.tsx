@@ -34,7 +34,7 @@ function getLogoSrc(kelasId?: string): string {
 // render locked until their detail pages are built.
 const navItems = [
   { name: 'Ringkasan', icon: Home, href: '/dashboard', locked: false },
-  { name: 'Kehadiran', icon: CalendarDays, href: '#', locked: true },
+  { name: 'Kehadiran', icon: CalendarDays, href: '/dashboard/kehadiran', locked: false },
   { name: 'Ziyadah', icon: BookOpen, href: '#', locked: true },
   { name: 'Murojaah', icon: RotateCcw, href: '#', locked: true },
   { name: 'Tibyan', icon: Type, href: '#', locked: true },

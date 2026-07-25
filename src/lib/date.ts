@@ -37,3 +37,12 @@ export function getISOWeekKey(date: Date): string {
   const weekNum = 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
   return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
+
+/** "07:45" -> 465 (minutes since midnight). Returns null for empty/unparseable values. */
+export function parseTimeToMinutes(value: string | undefined): number | null {
+  if (!value) return null;
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const [, h, m] = match;
+  return Number(h) * 60 + Number(m);
+}

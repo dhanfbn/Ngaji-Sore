@@ -47,6 +47,8 @@ export const KelasSchema = z.object({
   nama_kelas: z.string().optional(),
   id_guru: z.string().optional(),
   jadwal_kelas: z.string().optional(),
+  jam_masuk: z.string().optional(), // master schedule, e.g. "07:30" — used to judge Kehadiran punctuality
+  jam_pulang: z.string().optional(), // master schedule, e.g. "14:00"
   created_at: z.string().optional(),
 });
 
@@ -70,6 +72,8 @@ export const KehadiranSchema = z.object({
   catatan: z.string().optional(),
   created_by: z.string().optional(),
   key_minggu: z.string().optional(), // "2026-W01" — ISO week key, added alongside the v2.1 week-filter rollout
+  jam_masuk: z.string().optional(), // actual daily check-in time, e.g. "07:45"
+  jam_pulang: z.string().optional(), // actual daily check-out time, e.g. "14:00"
 });
 
 export const ZiyadahSchema = z.object({

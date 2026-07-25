@@ -1,8 +1,11 @@
 import { googleSheetsService } from './googleSheets.service';
-import { parseFlexibleDate, getISOWeekKey } from '@/lib/date';
+import { parseFlexibleDate, getISOWeekKey, parseTimeToMinutes } from '@/lib/date';
 import { getBadgeLabel } from '@/lib/kpi';
-import type { KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption } from '@/types/dashboard';
-import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
+import type {
+  KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption,
+  MonthOption, AttendanceCategory, AttendanceCalendarDay, AttendanceLogRow, KehadiranDetailData,
+} from '@/types/dashboard';
+import type { CatatanAnakRow, KehadiranRow, LessonPlanMingguanRow } from '@/types/database';
 
 export interface DashboardData {
   kpi: KPIEntry[];
@@ -25,6 +28,9 @@ export interface HeaderInfo {
 const HARI_ORDER = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad', 'Minggu'];
 const ADAB_KATEGORI_ORDER = ['Sopan', 'Santun', 'Kedisiplinan'];
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const BULAN_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+/** Date.getDay() index (0=Sunday) -> Indonesian day name. */
+const HARI_BY_WEEKDAY = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 function sortByDateDesc<T>(rows: T[], getDate: (row: T) => string): T[] {
   return [...rows].sort((a, b) => {
@@ -204,5 +210,158 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
     notes,
     homework,
     studentName: santri?.nama || 'Santri',
+  };
+}
+
+// ── Kehadiran detail page ────────────────────────────────────────
+
+function classifyAttendanceStatus(status: string): AttendanceCategory {
+  const s = status.toLowerCase();
+  if (s.includes('hadir')) return 'hadir';
+  if (s.includes('sakit')) return 'sakit';
+  if (s.includes('izin')) return 'izin';
+  return 'alpa'; // "alpa" / "tanpa keterangan" / any other unrecognized value
+}
+
+/** Distinct months present in the santri's Kehadiran rows, newest first. */
+function getMonthsAvailable(rows: KehadiranRow[]): MonthOption[] {
+  const map = new Map<string, MonthOption>();
+  for (const r of rows) {
+    const date = parseFlexibleDate(r.tanggal);
+    if (!date) continue;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!map.has(key)) {
+      map.set(key, { key, label: `${BULAN_FULL[date.getMonth()]} ${date.getFullYear()}` });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
+}
+
+/** Picks `requested` if valid, else the current month if it has data, else the latest available month. */
+function resolveSelectedMonth(months: MonthOption[], requested: string | undefined, today: Date): string {
+  if (requested && months.some(m => m.key === requested)) return requested;
+  const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  return months.find(m => m.key === currentKey)?.key ?? months[0]?.key ?? '';
+}
+
+export async function getKehadiranDetail(id_santri: string, selectedMonthParam?: string): Promise<KehadiranDetailData> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+  const [kehadiran, kelas] = await Promise.all([
+    googleSheetsService.getKehadiranBySantri(id_santri),
+    santri?.id_kelas ? googleSheetsService.getKelasById(santri.id_kelas) : Promise.resolve(null),
+  ]);
+
+  // Rows need a parseable date and a non-empty status to count as a real school day.
+  const validRows = kehadiran.filter(r => r.status && parseFlexibleDate(r.tanggal));
+  const months = getMonthsAvailable(validRows);
+  const selectedMonth = resolveSelectedMonth(months, selectedMonthParam, new Date());
+  const monthLabel = months.find(m => m.key === selectedMonth)?.label ?? '-';
+
+  if (!selectedMonth) {
+    return {
+      studentName: santri?.nama || 'Santri',
+      months,
+      selectedMonth: '',
+      monthLabel: '-',
+      summary: { totalHariSekolah: 0, hadirCount: 0, attendancePct: 0, tepatWaktuCount: 0, terlambatCount: 0, rataRataTerlambatMenit: 0, sakitCount: 0, izinCount: 0, alpaCount: 0 },
+      calendarDays: [],
+      log: [],
+    };
+  }
+
+  // Master schedule time (per class, applies to every school day) — used to judge punctuality.
+  const scheduledMasuk = parseTimeToMinutes(kelas?.jam_masuk);
+
+  const monthRows = validRows
+    .filter(r => {
+      const d = parseFlexibleDate(r.tanggal)!;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+    })
+    .sort((a, b) => (parseFlexibleDate(a.tanggal)!.getTime()) - (parseFlexibleDate(b.tanggal)!.getTime()));
+
+  let hadirCount = 0, tepatWaktuCount = 0, terlambatCount = 0, terlambatTotalMenit = 0;
+  let sakitCount = 0, izinCount = 0, alpaCount = 0;
+
+  const log: AttendanceLogRow[] = monthRows.map((r, i) => {
+    const date = parseFlexibleDate(r.tanggal)!;
+    const kategori = classifyAttendanceStatus(r.status);
+    let punctuality: AttendanceLogRow['punctuality'] = null;
+    let terlambatMenit: number | null = null;
+
+    if (kategori === 'hadir') {
+      hadirCount++;
+      const actualMasuk = parseTimeToMinutes(r.jam_masuk);
+      if (actualMasuk !== null && scheduledMasuk !== null) {
+        if (actualMasuk > scheduledMasuk) {
+          punctuality = 'terlambat';
+          terlambatMenit = actualMasuk - scheduledMasuk;
+          terlambatCount++;
+          terlambatTotalMenit += terlambatMenit;
+        } else {
+          punctuality = 'tepat_waktu';
+          terlambatMenit = 0;
+          tepatWaktuCount++;
+        }
+      }
+    } else if (kategori === 'sakit') sakitCount++;
+    else if (kategori === 'izin') izinCount++;
+    else alpaCount++;
+
+    return {
+      no: i + 1,
+      tanggal: `${date.getDate()} ${BULAN[date.getMonth()]}`,
+      hari: HARI_BY_WEEKDAY[date.getDay()],
+      status: kategori,
+      punctuality,
+      terlambatMenit,
+      jamMasuk: r.jam_masuk || '-',
+      jamPulang: r.jam_pulang || '-',
+      catatan: r.catatan || '',
+    };
+  });
+
+  const totalHariSekolah = monthRows.length;
+  const attendancePct = totalHariSekolah > 0 ? Math.round((hadirCount / totalHariSekolah) * 1000) / 10 : 0;
+  const rataRataTerlambatMenit = terlambatCount > 0 ? Math.round(terlambatTotalMenit / terlambatCount) : 0;
+
+  // --- Full month calendar grid: every day in the month, 'none' where no Kehadiran row exists ---
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+  const statusByDay = new Map<number, AttendanceCalendarDay['status']>();
+  for (const r of monthRows) {
+    const date = parseFlexibleDate(r.tanggal)!;
+    const kategori = classifyAttendanceStatus(r.status);
+    let status: AttendanceCalendarDay['status'];
+    if (kategori === 'hadir') {
+      const actualMasuk = parseTimeToMinutes(r.jam_masuk);
+      status = (actualMasuk !== null && scheduledMasuk !== null && actualMasuk > scheduledMasuk) ? 'hadir_terlambat' : 'hadir_tepat';
+    } else {
+      status = kategori;
+    }
+    statusByDay.set(date.getDate(), status);
+  }
+
+  const calendarDays: AttendanceCalendarDay[] = Array.from({ length: daysInMonth }, (_, idx) => {
+    const day = idx + 1;
+    const weekday = new Date(year, monthIndex, day).getDay();
+    return {
+      day,
+      date: statusByDay.has(day) ? `${year}-${monthStr}-${String(day).padStart(2, '0')}` : null,
+      status: statusByDay.get(day) ?? 'none',
+      weekday,
+    };
+  });
+
+  return {
+    studentName: santri?.nama || 'Santri',
+    months,
+    selectedMonth,
+    monthLabel,
+    summary: { totalHariSekolah, hadirCount, attendancePct, tepatWaktuCount, terlambatCount, rataRataTerlambatMenit, sakitCount, izinCount, alpaCount },
+    calendarDays,
+    log,
   };
 }
