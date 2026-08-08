@@ -5,6 +5,7 @@ import type {
   KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption,
   MonthOption, AttendanceCategory, AttendanceCalendarDay, AttendanceLogRow, KehadiranDetailData,
   ZiyadahDetailData, ZiyadahLogRow, ZiyadahStatus, ZiyadahPencapaianLevel,
+  MurojaahDetailData, MurojaahLogRow, MurojaahPencapaianLevel,
 } from '@/types/dashboard';
 import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
 
@@ -460,6 +461,102 @@ export async function getZiyadahDetail(id_santri: string, selectedMonthParam?: s
     monthLabel,
     summary: { totalAyatDihafal, totalTargetAyat, pct, surahBaruCount: distinctSurah.size, rataRataAyatPerHari },
     pencapaian: { lancarAyat, cukupAyat, perluAyat },
+    log,
+    catatanStrategi,
+    targetPekanDepan,
+  };
+}
+
+// ── Murojaah detail page ──────────────────────────────────────────
+
+/** "Lancar" / "Cukup Lancar" / "Perlu Diulang" -> normalized level for coloring badges/pie slices. */
+function normalizeStatusKelancaran(status: string): MurojaahPencapaianLevel {
+  const s = status.toLowerCase();
+  if (s.includes('cukup')) return 'cukup';
+  if (s.includes('lancar')) return 'lancar';
+  return 'perlu';
+}
+
+export async function getMurojaahDetail(id_santri: string, selectedMonthParam?: string): Promise<MurojaahDetailData> {
+  const santri = await googleSheetsService.getSantriById(id_santri);
+  const murojaah = await googleSheetsService.getMurojaahBySantri(id_santri);
+
+  // surat_diulang is often left blank by teachers so far (status_kelancaran is
+  // filled in first) — don't require it, only require the status + a parseable date.
+  const validRows = murojaah.filter(r => r.status_kelancaran && parseFlexibleDate(r.tanggal));
+  const months = getMonthsAvailable(validRows, r => r.tanggal);
+  const selectedMonth = resolveSelectedMonth(months, selectedMonthParam, new Date());
+  const monthLabel = months.find(m => m.key === selectedMonth)?.label ?? '-';
+
+  if (!selectedMonth) {
+    return {
+      studentName: santri?.nama || 'Santri',
+      months,
+      selectedMonth: '',
+      monthLabel: '-',
+      summary: { totalSesi: 0, pctLancar: 0, surahDiulangCount: 0, rataRataSesiPerHari: 0 },
+      pencapaian: { lancarSesi: 0, cukupSesi: 0, perluSesi: 0 },
+      log: [],
+      catatanStrategi: 'Belum ada catatan strategi dari guru.',
+      targetPekanDepan: 'Belum ada target untuk pekan depan.',
+    };
+  }
+
+  const monthRows = validRows
+    .filter(r => {
+      const d = parseFlexibleDate(r.tanggal)!;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+    })
+    .sort((a, b) => parseFlexibleDate(a.tanggal)!.getTime() - parseFlexibleDate(b.tanggal)!.getTime());
+
+  let lancarSesi = 0, cukupSesi = 0, perluSesi = 0;
+  const distinctDates = new Set<string>();
+  const distinctSurah = new Set<string>();
+
+  const log: MurojaahLogRow[] = monthRows.map((r, i) => {
+    const date = parseFlexibleDate(r.tanggal)!;
+    const pencapaian = normalizeStatusKelancaran(r.status_kelancaran);
+
+    distinctDates.add(r.tanggal);
+    if (r.surat_diulang) distinctSurah.add(r.surat_diulang);
+    if (pencapaian === 'lancar') lancarSesi++;
+    else if (pencapaian === 'cukup') cukupSesi++;
+    else perluSesi++;
+
+    return {
+      no: i + 1,
+      tanggal: `${date.getDate()} ${BULAN[date.getMonth()]}`,
+      hari: HARI_BY_WEEKDAY[date.getDay()],
+      suratDiulang: r.surat_diulang || '-',
+      statusKelancaran: r.status_kelancaran,
+      pencapaian,
+      catatanGuru: r.catatan_guru || '',
+    };
+  });
+
+  const totalSesi = monthRows.length;
+  const pctLancar = totalSesi > 0 ? Math.round((lancarSesi / totalSesi) * 1000) / 10 : 0;
+  const rataRataSesiPerHari = distinctDates.size > 0 ? Math.round((totalSesi / distinctDates.size) * 10) / 10 : 0;
+
+  const latest = monthRows[monthRows.length - 1];
+  const catatanStrategi = latest?.catatan_guru || 'Belum ada catatan strategi dari guru bulan ini.';
+  const targetPekanDepan = latest
+    ? (normalizeStatusKelancaran(latest.status_kelancaran) !== 'lancar'
+        ? (latest.surat_diulang
+            ? `Perkuat kembali murojaah ${latest.surat_diulang} pekan depan.`
+            : 'Perkuat kembali materi murojaah pekan depan.')
+        : (latest.surat_diulang
+            ? `Lanjutkan ke surah berikutnya setelah ${latest.surat_diulang}.`
+            : 'Lanjutkan ke materi murojaah berikutnya.'))
+    : 'Belum ada target untuk pekan depan.';
+
+  return {
+    studentName: santri?.nama || 'Santri',
+    months,
+    selectedMonth,
+    monthLabel,
+    summary: { totalSesi, pctLancar, surahDiulangCount: distinctSurah.size, rataRataSesiPerHari },
+    pencapaian: { lancarSesi, cukupSesi, perluSesi },
     log,
     catatanStrategi,
     targetPekanDepan,

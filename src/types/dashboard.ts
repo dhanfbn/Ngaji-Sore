@@ -141,3 +141,43 @@ export interface ZiyadahDetailData {
   catatanStrategi: string;
   targetPekanDepan: string;
 }
+
+// ── Murojaah detail page ──────────────────────────────────────────
+
+/** Normalized from the sheet's status_kelancaran text (Lancar / Cukup Lancar / Perlu Diulang). */
+export type MurojaahPencapaianLevel = 'lancar' | 'cukup' | 'perlu';
+
+export interface MurojaahLogRow {
+  no: number;
+  tanggal: string;
+  hari: string;
+  suratDiulang: string;
+  statusKelancaran: string;
+  pencapaian: MurojaahPencapaianLevel;
+  catatanGuru: string;
+}
+
+export interface MurojaahSummary {
+  totalSesi: number;
+  pctLancar: number;
+  surahDiulangCount: number;
+  rataRataSesiPerHari: number;
+}
+
+export interface MurojaahPencapaian {
+  lancarSesi: number;
+  cukupSesi: number;
+  perluSesi: number;
+}
+
+export interface MurojaahDetailData {
+  studentName: string;
+  months: MonthOption[];
+  selectedMonth: string;
+  monthLabel: string;
+  summary: MurojaahSummary;
+  pencapaian: MurojaahPencapaian;
+  log: MurojaahLogRow[];
+  catatanStrategi: string;
+  targetPekanDepan: string;
+}
