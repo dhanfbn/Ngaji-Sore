@@ -77,6 +77,14 @@ async function fetchAndValidateSheetData<T>(range: string, schema: z.ZodType<T>)
           key = 'status_santri';
         }
 
+        // Santri sheet columns were renamed (nama -> nama_santri, gender -> jenis_kelamin)
+        if (range === 'Santri' && key === 'nama_santri') {
+          key = 'nama';
+        }
+        if (range === 'Santri' && key === 'jenis_kelamin') {
+          key = 'gender';
+        }
+
         obj[key] = typeof row[index] === 'string' ? row[index].trim() : (row[index] || '');
       });
       return obj;
