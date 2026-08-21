@@ -408,25 +408,15 @@ export async function getZiyadahDetail(id_santri: string, selectedMonthParam?: s
     })
     .sort((a, b) => parseFlexibleDate(a.tanggal)!.getTime() - parseFlexibleDate(b.tanggal)!.getTime());
 
-  let totalAyatDihafal = 0, totalTargetAyat = 0;
-  let lancarAyat = 0, cukupAyat = 0, perluAyat = 0;
   const distinctDates = new Set<string>();
-  const distinctSurah = new Set<string>();
 
   const log: ZiyadahLogRow[] = monthRows.map((r, i) => {
     const date = parseFlexibleDate(r.tanggal)!;
-    const ayatRange = Math.max(0, r.ayat_sampai - r.ayat_dari + 1);
     const progresPct = parsePercentString(r.progres_ayat);
     const status: ZiyadahStatus = progresPct >= 100 ? 'hafal' : 'proses';
     const pencapaian: ZiyadahPencapaianLevel = progresPct >= 80 ? 'lancar' : progresPct >= 50 ? 'cukup' : 'perlu';
 
-    totalAyatDihafal += ayatRange;
-    totalTargetAyat += r.target_ayat;
     distinctDates.add(r.tanggal);
-    distinctSurah.add(r.surat);
-    if (pencapaian === 'lancar') lancarAyat += ayatRange;
-    else if (pencapaian === 'cukup') cukupAyat += ayatRange;
-    else perluAyat += ayatRange;
 
     return {
       no: i + 1,
@@ -442,6 +432,57 @@ export async function getZiyadahDetail(id_santri: string, selectedMonthParam?: s
       catatanGuru: r.catatan_guru || '',
     };
   });
+
+  // Total ayat (and its Lancar/Cukup Lancar/Perlu Diperbaiki split) is derived per
+  // distinct surah (grouped by id_surah, falling back to the surah name), not summed
+  // across every daily row — a surah worked on across several days must contribute
+  // its covered range once, not once per day. The surah's pencapaian level is taken
+  // from its most recent entry that month (its current fluency status), not summed.
+  interface SurahGroup {
+    minAyatDari: number;
+    maxAyatSampai: number;
+    maxTargetAyat: number;
+    latestDateMs: number;
+    latestPencapaian: ZiyadahPencapaianLevel;
+  }
+  const surahGroups = new Map<string, SurahGroup>();
+  for (const r of monthRows) {
+    const key = (r.id_surah && r.id_surah.trim()) || r.surat.trim().toLowerCase();
+    const dateMs = parseFlexibleDate(r.tanggal)!.getTime();
+    const progresPct = parsePercentString(r.progres_ayat);
+    const pencapaian: ZiyadahPencapaianLevel = progresPct >= 80 ? 'lancar' : progresPct >= 50 ? 'cukup' : 'perlu';
+
+    const g = surahGroups.get(key);
+    if (g) {
+      g.minAyatDari = Math.min(g.minAyatDari, r.ayat_dari);
+      g.maxAyatSampai = Math.max(g.maxAyatSampai, r.ayat_sampai);
+      g.maxTargetAyat = Math.max(g.maxTargetAyat, r.target_ayat);
+      if (dateMs >= g.latestDateMs) {
+        g.latestDateMs = dateMs;
+        g.latestPencapaian = pencapaian;
+      }
+    } else {
+      surahGroups.set(key, {
+        minAyatDari: r.ayat_dari,
+        maxAyatSampai: r.ayat_sampai,
+        maxTargetAyat: r.target_ayat,
+        latestDateMs: dateMs,
+        latestPencapaian: pencapaian,
+      });
+    }
+  }
+
+  let totalAyatDihafal = 0, totalTargetAyat = 0;
+  let lancarAyat = 0, cukupAyat = 0, perluAyat = 0;
+  for (const g of surahGroups.values()) {
+    const verseCount = Math.max(0, g.maxAyatSampai - g.minAyatDari + 1);
+    totalAyatDihafal += verseCount;
+    totalTargetAyat += g.maxTargetAyat;
+    if (g.latestPencapaian === 'lancar') lancarAyat += verseCount;
+    else if (g.latestPencapaian === 'cukup') cukupAyat += verseCount;
+    else perluAyat += verseCount;
+  }
+  const surahBaruCount = surahGroups.size;
 
   const pct = totalTargetAyat > 0 ? Math.round((totalAyatDihafal / totalTargetAyat) * 1000) / 10 : 0;
   const rataRataAyatPerHari = distinctDates.size > 0 ? Math.round((totalAyatDihafal / distinctDates.size) * 10) / 10 : 0;
@@ -459,7 +500,7 @@ export async function getZiyadahDetail(id_santri: string, selectedMonthParam?: s
     months,
     selectedMonth,
     monthLabel,
-    summary: { totalAyatDihafal, totalTargetAyat, pct, surahBaruCount: distinctSurah.size, rataRataAyatPerHari },
+    summary: { totalAyatDihafal, totalTargetAyat, pct, surahBaruCount, rataRataAyatPerHari },
     pencapaian: { lancarAyat, cukupAyat, perluAyat },
     log,
     catatanStrategi,

@@ -7,9 +7,6 @@ import {
   CalendarDays,
   BookOpen,
   RotateCcw,
-  Type,
-  GraduationCap,
-  HeartHandshake,
   LogOut,
   Lock,
   Menu
@@ -31,15 +28,12 @@ function getLogoSrc(kelasId?: string): string {
 }
 
 // v2 scope: Ringkasan, Kehadiran, Ziyadah, and Murojaah are active; the
-// remaining 3 KPI categories render locked until their detail pages are built.
+// remaining 3 KPI categories aren't built yet, hidden from sidebar (not just locked).
 const navItems = [
   { name: 'Ringkasan', icon: Home, href: '/dashboard', locked: false },
   { name: 'Kehadiran', icon: CalendarDays, href: '/dashboard/kehadiran', locked: false },
   { name: 'Ziyadah', icon: BookOpen, href: '/dashboard/ziyadah', locked: false },
   { name: 'Murojaah', icon: RotateCcw, href: '/dashboard/murojaah', locked: false },
-  { name: 'Tibyan', icon: Type, href: '#', locked: true },
-  { name: 'Tarbiyyah', icon: GraduationCap, href: '#', locked: true },
-  { name: 'Adab Harian', icon: HeartHandshake, href: '#', locked: true },
 ];
 
 function SidebarContent({ onNavigate, kelasId }: { onNavigate?: () => void; kelasId?: string }) {

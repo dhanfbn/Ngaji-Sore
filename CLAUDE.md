@@ -62,6 +62,17 @@ Sheets that are **kept as-is** (structure is already fine): `Santri`, `Kelas`, `
 
 Sheets that are **rebuilt/new**:
 
+### Master_surah (new lookup/reference sheet, added 2026-08-21)
+```
+id_surah | nama_surah | jumlah_ayat
+```
+- Reference table, no `id_santri` — not filtered per-student. Fetched via
+  `googleSheetsService.getMasterSurah()` / `getSurahById(id_surah)` in
+  `googleSheets.service.ts`.
+- `Ziyadah.id_surah` (below) is a FK into this sheet's `id_surah`. Schema/service
+  plumbing is in place (`MasterSurahSchema` in `src/types/database.ts`); no
+  dashboard logic consumes it yet — planned follow-up once this sheet has data.
+
 ### Kehadiran
 ```
 id_kehadiran | id_santri | id_kelas | tanggal | status | catatan | created_by | key_minggu
@@ -69,8 +80,12 @@ id_kehadiran | id_santri | id_kelas | tanggal | status | catatan | created_by | 
 
 ### Ziyadah (new memorization material)
 ```
-id_ziyadah | id_santri | id_kelas | surat | ayat_dari | ayat_sampai | progres_ayat | target_ayat | tanggal | catatan_guru | created_by | key_minggu
+id_ziyadah | id_santri | id_kelas | surat | id_surah | ayat_dari | ayat_sampai | progres_ayat | target_ayat | tanggal | catatan_guru | created_by | key_minggu
 ```
+- **Added 2026-08-21**: `id_surah` column (FK -> `Master_surah.id_surah`).
+  `ZiyadahSchema.id_surah` is `.optional()` since older rows may predate the
+  column. `surat` (free-text surah name) stays for now — not yet replaced by
+  the `Master_surah` lookup.
 
 ### Murojaah (review of previously memorized material)
 ```

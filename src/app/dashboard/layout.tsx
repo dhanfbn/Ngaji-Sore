@@ -29,7 +29,7 @@ export default async function DashboardLayout({
           semester={headerInfo.semester}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-8">
-          <div className="max-w-[1400px] mx-auto">
+          <div className="max-w-[1400px] mx-auto h-full">
             {children}
           </div>
         </main>

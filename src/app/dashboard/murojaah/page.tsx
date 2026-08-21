@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { MessageCircle, Target } from 'lucide-react';
-import { MurojaahSummaryCard } from '@/components/murojaah/MurojaahSummaryCard';
 import { MurojaahPencapaianCard } from '@/components/murojaah/MurojaahPencapaianCard';
 import { MurojaahLogTable } from '@/components/murojaah/MurojaahLogTable';
 import { ZiyadahNoteCard } from '@/components/ziyadah/ZiyadahNoteCard';
@@ -24,7 +23,7 @@ export default async function MurojaahPage({ searchParams }: MurojaahPageProps) 
   const { bulan } = await searchParams;
   const userId = session.user.id;
   const data = await getMurojaahDetail(userId, bulan);
-  const { studentName, months, selectedMonth, monthLabel, summary, pencapaian, log, catatanStrategi, targetPekanDepan } = data;
+  const { studentName, months, selectedMonth, monthLabel, pencapaian, log, catatanStrategi, targetPekanDepan } = data;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -47,12 +46,9 @@ export default async function MurojaahPage({ searchParams }: MurojaahPageProps) 
         </div>
       ) : (
         <>
-          {/* ── Ringkasan / Analisis Kelancaran ──────────────────── */}
+          {/* ── Analisis Kelancaran ───────────────────────────────── */}
           <section aria-label="Ringkasan murojaah">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:items-stretch">
-              <MurojaahSummaryCard monthLabel={monthLabel} summary={summary} />
-              <MurojaahPencapaianCard pencapaian={pencapaian} />
-            </div>
+            <MurojaahPencapaianCard pencapaian={pencapaian} />
           </section>
 
           {/* ── Log Harian ──────────────────────────────────────── */}

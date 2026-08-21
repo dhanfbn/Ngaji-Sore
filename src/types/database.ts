@@ -61,6 +61,12 @@ export const GuruSchema = z.object({
   created_at: z.string().optional(),
 });
 
+export const MasterSurahSchema = z.object({
+  id_surah: z.string(),
+  nama_surah: z.string(),
+  jumlah_ayat: safeNumber,
+});
+
 // ── v2 taxonomy ──────────────────────────────────────────────────
 
 export const KehadiranSchema = z.object({
@@ -81,6 +87,7 @@ export const ZiyadahSchema = z.object({
   id_santri: z.string(),
   id_kelas: z.string(),
   surat: z.string(),
+  id_surah: z.string().optional(), // FK -> MasterSurahSchema.id_surah, added alongside the Master_surah sheet
   ayat_dari: safeNumber,
   ayat_sampai: safeNumber,
   progres_ayat: z.string().optional(), // stored as a percentage string, e.g. "25%"
@@ -196,6 +203,7 @@ export const ProgresMingguanSchema = z.object({
 export type SantriRow = z.infer<typeof SantriSchema>;
 export type KelasRow = z.infer<typeof KelasSchema>;
 export type GuruRow = z.infer<typeof GuruSchema>;
+export type MasterSurahRow = z.infer<typeof MasterSurahSchema>;
 export type KehadiranRow = z.infer<typeof KehadiranSchema>;
 export type ZiyadahRow = z.infer<typeof ZiyadahSchema>;
 export type MurojaahRow = z.infer<typeof MurojaahSchema>;

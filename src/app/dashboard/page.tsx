@@ -36,7 +36,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const { kpi, chartData, lessonPlan, notes, homework, studentName } = data;
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col h-full space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* ── Greeting ─────────────────────────────────────────── */}
       <div>
@@ -71,15 +71,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       {/* ── Chart / Lesson Plan / Catatan Anak & Tugas di Rumah ── */}
       {/* Equal 1/3-width columns, stretched to the same row height on lg+ */}
-      <section aria-label="Grafik perkembangan, lesson plan, catatan anak, dan tugas di rumah">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:items-stretch">
-          <div className="min-h-[380px]">
+      <section aria-label="Grafik perkembangan, lesson plan, catatan anak, dan tugas di rumah" className="lg:flex-1 lg:min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:items-stretch lg:h-full lg:[grid-template-rows:minmax(0,1fr)]">
+          <div className="min-h-[380px] lg:h-full lg:min-h-0">
             <ProgressChart data={chartData} />
           </div>
-          <div>
+          <div className="lg:h-full lg:min-h-0">
             <LessonPlanCard tema={lessonPlan.tema} hari={lessonPlan.hari} />
           </div>
-          <div className="flex flex-col gap-4 sm:gap-6">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:h-full lg:min-h-0">
             <CatatanAnakCard notes={notes} />
             <HomeworkList data={homework} />
           </div>

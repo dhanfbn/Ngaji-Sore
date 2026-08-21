@@ -32,12 +32,22 @@ function CategoryIcon({ kategori }: { kategori: string }) {
   return <Icon className="w-4 h-4 text-slate-500" aria-hidden="true" />;
 }
 
+function groupByHari(hari: LessonPlanDay[]): [string, LessonPlanDay[]][] {
+  const groups = new Map<string, LessonPlanDay[]>();
+  for (const d of hari) {
+    const list = groups.get(d.hari);
+    if (list) list.push(d);
+    else groups.set(d.hari, [d]);
+  }
+  return Array.from(groups.entries());
+}
+
 // ── Component ──────────────────────────────────────────────────
 export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
   return (
     <Card className="h-full card-3d overflow-hidden bg-white">
       <CardContent className="flex flex-col h-full p-5 sm:p-6">
-        <div className="inline-flex items-center gap-2 bg-violet-600 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
+        <div className="inline-flex items-center gap-2 bg-violet-600 rounded-full pl-1 pr-4 py-1 shadow-sm mb-3 self-start shrink-0">
           <span className="w-6 h-6 rounded-full bg-white text-violet-600 flex items-center justify-center shrink-0">
             <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
@@ -54,21 +64,25 @@ export function LessonPlanCard({ tema, hari }: LessonPlanCardProps) {
         ) : (
           <>
             {tema && (
-              <p className="text-sm text-foreground mb-4">
+              <p className="text-sm text-foreground mb-3">
                 <span className="font-bold">Tema Minggu Ini:</span> {tema}
               </p>
             )}
             <div className="space-y-2">
-              {hari.map((d, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className={`w-16 shrink-0 text-center text-xs font-bold rounded-full py-1.5 ${HARI_COLOR[d.hari] ?? 'bg-slate-200 text-slate-700'}`}>
-                    {d.hari}
+              {groupByHari(hari).map(([namaHari, items]) => (
+                <div key={namaHari} className="flex gap-3">
+                  <span className={`w-16 shrink-0 h-fit text-center text-xs font-bold rounded-full py-1 sticky top-0 ${HARI_COLOR[namaHari] ?? 'bg-slate-200 text-slate-700'}`}>
+                    {namaHari}
                   </span>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="shrink-0"><CategoryIcon kategori={d.kategori} /></span>
-                    <span className="text-sm text-foreground leading-snug truncate">
-                      <span className="font-semibold">{d.kategori}:</span> {d.materi}
-                    </span>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    {items.map((d, i) => (
+                      <div key={i} className="flex items-center gap-2 min-w-0">
+                        <span className="shrink-0"><CategoryIcon kategori={d.kategori} /></span>
+                        <span className="text-sm text-foreground leading-snug truncate">
+                          <span className="font-semibold">{d.kategori}:</span> {d.materi}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

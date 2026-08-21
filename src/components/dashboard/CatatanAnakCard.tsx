@@ -12,8 +12,8 @@ export function CatatanAnakCard({ notes }: CatatanAnakCardProps) {
   const latest = notes[0];
 
   return (
-    <Card className="flex-1 flex flex-col card-3d overflow-hidden bg-white">
-      <CardContent className="flex-1 flex flex-col p-5 sm:p-6">
+    <Card className="flex-1 flex flex-col min-h-0 card-3d overflow-hidden bg-white">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-5 sm:p-6">
         <div className="inline-flex items-center gap-2 bg-sky-500 rounded-full pl-1 pr-4 py-1 shadow-sm mb-4 self-start shrink-0">
           <span className="w-6 h-6 rounded-full bg-white text-sky-500 flex items-center justify-center shrink-0">
             <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" fill="currentColor" />
@@ -22,7 +22,7 @@ export function CatatanAnakCard({ notes }: CatatanAnakCardProps) {
         </div>
 
         {latest ? (
-          <div className="flex-1 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
             <p className="text-sm text-foreground leading-relaxed">{latest.isi_catatan}</p>
           </div>
         ) : (

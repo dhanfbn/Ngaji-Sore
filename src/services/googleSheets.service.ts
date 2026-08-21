@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   SantriSchema,
   KelasSchema,
+  MasterSurahSchema,
   KehadiranSchema,
   ZiyadahSchema,
   MurojaahSchema,
@@ -14,6 +15,7 @@ import {
   ProgresMingguanSchema,
   type SantriRow,
   type KelasRow,
+  type MasterSurahRow,
   type KehadiranRow,
   type ZiyadahRow,
   type MurojaahRow,
@@ -125,6 +127,15 @@ export const googleSheetsService = {
   async getKelasById(id_kelas: string): Promise<KelasRow | null> {
     const allKelas = await fetchAndValidateSheetData('Kelas', KelasSchema);
     return allKelas.find(k => k.id_kelas === id_kelas) || null;
+  },
+
+  async getMasterSurah(): Promise<MasterSurahRow[]> {
+    return fetchAndValidateSheetData('Master_surah', MasterSurahSchema);
+  },
+
+  async getSurahById(id_surah: string): Promise<MasterSurahRow | null> {
+    const allSurah = await this.getMasterSurah();
+    return allSurah.find(s => s.id_surah === id_surah) || null;
   },
 
   async getKehadiranBySantri(id_santri: string): Promise<KehadiranRow[]> {

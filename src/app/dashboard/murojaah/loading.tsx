@@ -1,4 +1,3 @@
-import { MurojaahSummaryCardSkeleton } from '@/components/murojaah/MurojaahSummaryCard';
 import { MurojaahPencapaianCardSkeleton } from '@/components/murojaah/MurojaahPencapaianCard';
 import { MurojaahLogTableSkeleton } from '@/components/murojaah/MurojaahLogTable';
 import { ZiyadahNoteCardSkeleton } from '@/components/ziyadah/ZiyadahNoteCard';
@@ -16,11 +15,8 @@ export default function MurojaahLoading() {
         <Skeleton className="h-11 w-40 rounded-2xl" />
       </div>
 
-      {/* Ringkasan / Analisis Kelancaran skeletons */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <MurojaahSummaryCardSkeleton />
-        <MurojaahPencapaianCardSkeleton />
-      </div>
+      {/* Analisis Kelancaran skeleton */}
+      <MurojaahPencapaianCardSkeleton />
 
       {/* Log table skeleton */}
       <MurojaahLogTableSkeleton />
