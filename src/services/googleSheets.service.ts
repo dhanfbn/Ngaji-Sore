@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   SantriSchema,
   KelasSchema,
+  GuruSchema,
   MasterSurahSchema,
   KehadiranSchema,
   ZiyadahSchema,
@@ -15,6 +16,7 @@ import {
   ProgresMingguanSchema,
   type SantriRow,
   type KelasRow,
+  type GuruRow,
   type MasterSurahRow,
   type KehadiranRow,
   type ZiyadahRow,
@@ -33,6 +35,12 @@ const API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
 
 // The actual tab in the spreadsheet has a trailing space in its name.
 const RANGE_PROGRES_MINGGUAN = 'Progres_Mingguan ';
+
+// The Adab_Harian tab was renamed to "Lain-lain" directly in the spreadsheet
+// at some point — never updated here, so getAdabHarianBySantri has silently
+// returned an empty array in production until this was found while building
+// the Postgres migration script. Column headers still match AdabHarianSchema.
+const RANGE_ADAB_HARIAN = 'Lain-lain';
 
 /**
  * Helper function to fetch data from a specific range/worksheet via REST API.
@@ -77,6 +85,10 @@ async function fetchAndValidateSheetData<T>(range: string, schema: z.ZodType<T>)
         // Only map status -> status_santri for the Santri range to prevent conflicts
         if (key === 'status' && range === 'Santri') {
           key = 'status_santri';
+        }
+        // Guru sheet's status column is just "status" too, but GuruSchema expects status_guru
+        if (key === 'status' && range === 'Guru') {
+          key = 'status_guru';
         }
 
         // Santri sheet columns were renamed (nama -> nama_santri, gender -> jenis_kelamin)
@@ -164,7 +176,7 @@ export const googleSheetsService = {
   },
 
   async getAdabHarianBySantri(id_santri: string): Promise<AdabHarianRow[]> {
-    const allAdab = await fetchAndValidateSheetData('Adab_Harian', AdabHarianSchema);
+    const allAdab = await fetchAndValidateSheetData(RANGE_ADAB_HARIAN, AdabHarianSchema);
     return allAdab.filter(a => a.id_santri === id_santri);
   },
 
@@ -186,5 +198,61 @@ export const googleSheetsService = {
   async getProgresMingguanBySantri(id_santri: string): Promise<ProgresMingguanRow[]> {
     const allProgres = await fetchAndValidateSheetData(RANGE_PROGRES_MINGGUAN, ProgresMingguanSchema);
     return allProgres.filter(p => p.id_santri === id_santri);
+  },
+
+  // ── Additive "fetch whole tab" helpers for scripts/migrate-to-postgres.ts.
+  // Not consumed by dashboard.service.ts — kept separate from the getXBySantri
+  // methods above so their signatures stay untouched.
+
+  async getAllSantri(): Promise<SantriRow[]> {
+    return fetchAndValidateSheetData('Santri', SantriSchema);
+  },
+
+  async getAllKelas(): Promise<KelasRow[]> {
+    return fetchAndValidateSheetData('Kelas', KelasSchema);
+  },
+
+  async getAllGuru(): Promise<GuruRow[]> {
+    return fetchAndValidateSheetData('Guru', GuruSchema);
+  },
+
+  async getAllKehadiran(): Promise<KehadiranRow[]> {
+    return fetchAndValidateSheetData('Kehadiran', KehadiranSchema);
+  },
+
+  async getAllZiyadah(): Promise<ZiyadahRow[]> {
+    return fetchAndValidateSheetData('Ziyadah', ZiyadahSchema);
+  },
+
+  async getAllMurojaah(): Promise<MurojaahRow[]> {
+    return fetchAndValidateSheetData('Murojaah', MurojaahSchema);
+  },
+
+  async getAllTibyan(): Promise<TibyanRow[]> {
+    return fetchAndValidateSheetData('Tibyan', TibyanSchema);
+  },
+
+  async getAllTarbiyyah(): Promise<TarbiyyahRow[]> {
+    return fetchAndValidateSheetData('Tarbiyyah', TarbiyyahSchema);
+  },
+
+  async getAllAdabHarian(): Promise<AdabHarianRow[]> {
+    return fetchAndValidateSheetData(RANGE_ADAB_HARIAN, AdabHarianSchema);
+  },
+
+  async getAllLessonPlan(): Promise<LessonPlanMingguanRow[]> {
+    return fetchAndValidateSheetData('Lesson_Plan_Mingguan', LessonPlanMingguanSchema);
+  },
+
+  async getAllCatatanAnak(): Promise<CatatanAnakRow[]> {
+    return fetchAndValidateSheetData('Catatan_Anak', CatatanAnakSchema);
+  },
+
+  async getAllTugasRumah(): Promise<TugasRumahRow[]> {
+    return fetchAndValidateSheetData('Tugas_Rumah', TugasRumahSchema);
+  },
+
+  async getAllProgresMingguan(): Promise<ProgresMingguanRow[]> {
+    return fetchAndValidateSheetData(RANGE_PROGRES_MINGGUAN, ProgresMingguanSchema);
   },
 };

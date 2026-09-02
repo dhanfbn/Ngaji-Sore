@@ -1,13 +1,14 @@
-import { googleSheetsService } from './googleSheets.service';
+import { googleSheetsService } from './db.service';
 import { parseFlexibleDate, getISOWeekKey, parseTimeToMinutes } from '@/lib/date';
 import { getBadgeLabel } from '@/lib/kpi';
+import { getWeeksForKelas } from '@/lib/weeks';
 import type {
   KPIEntry, ChartDataPoint, LessonPlanData, HomeworkItem, WeekOption,
   MonthOption, AttendanceCategory, AttendanceCalendarDay, AttendanceLogRow, KehadiranDetailData,
   ZiyadahDetailData, ZiyadahLogRow, ZiyadahStatus, ZiyadahPencapaianLevel,
   MurojaahDetailData, MurojaahLogRow, MurojaahPencapaianLevel,
 } from '@/types/dashboard';
-import type { CatatanAnakRow, LessonPlanMingguanRow } from '@/types/database';
+import type { CatatanAnakRow } from '@/types/database';
 
 export interface DashboardData {
   kpi: KPIEntry[];
@@ -52,40 +53,11 @@ function formatWeekLabel(key_minggu: string): string {
   return match ? `Mg. ${Number(match[1])}` : key_minggu;
 }
 
-function formatPeriodeRange(start: Date, end: Date): string {
-  const d1 = start.getDate(), d2 = end.getDate();
-  const m1 = BULAN[start.getMonth()], m2 = BULAN[end.getMonth()];
-  const y1 = start.getFullYear(), y2 = end.getFullYear();
-  if (y1 === y2 && m1 === m2) return `${d1} – ${d2} ${m1} ${y1}`;
-  if (y1 === y2) return `${d1} ${m1} – ${d2} ${m2} ${y1}`;
-  return `${d1} ${m1} ${y1} – ${d2} ${m2} ${y2}`;
-}
-
 /** Indonesian school calendar convention: Ganjil = Jul–Dec, Genap = Jan–Jun. */
 function getSemesterLabel(today: Date): string {
   const month = today.getMonth() + 1;
   const year = today.getFullYear();
   return month >= 7 ? `Ganjil ${year}/${year + 1}` : `Genap ${year - 1}/${year}`;
-}
-
-/** Selectable weeks for the dropdown, sourced from Lesson_Plan_Mingguan for the class, newest first. */
-async function getWeeksForKelas(id_kelas: string | undefined): Promise<{ weeks: WeekOption[]; lessonPlans: LessonPlanMingguanRow[] }> {
-  const lessonPlans = id_kelas ? await googleSheetsService.getLessonPlanByKelas(id_kelas) : [];
-
-  const firstRowPerWeek = new Map<string, LessonPlanMingguanRow>();
-  for (const p of lessonPlans) {
-    if (!firstRowPerWeek.has(p.key_minggu)) firstRowPerWeek.set(p.key_minggu, p);
-  }
-
-  const weeks: WeekOption[] = [...firstRowPerWeek.entries()]
-    .sort((a, b) => b[0].localeCompare(a[0])) // "2026-W29" > "2026-W01" sorts correctly as plain strings
-    .map(([key, row]) => {
-      const start = parseFlexibleDate(row.tanggal_mulai);
-      const end = parseFlexibleDate(row.tanggal_selesai);
-      return { key, label: start && end ? formatPeriodeRange(start, end) : key };
-    });
-
-  return { weeks, lessonPlans };
 }
 
 /** Picks `requested` if it's a valid option, else the current ISO week if it has data, else the latest available week. */
@@ -132,7 +104,14 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
   const weekKey = resolveSelectedWeek(weeks, selectedWeekParam, new Date());
 
   // --- Kehadiran: live % from the selected week's attendance rows ---
-  const weekKehadiran = kehadiran.filter(k => k.key_minggu === weekKey);
+  // Only Senin-Jumat count toward the denominator (5 pertemuan/minggu) — some
+  // classes' migrated data has a stray Sabtu/Ahad row for the same key_minggu,
+  // which would otherwise inflate "X dari Y" past 5.
+  const weekKehadiran = kehadiran.filter(k => {
+    if (k.key_minggu !== weekKey) return false;
+    const day = parseFlexibleDate(k.tanggal)?.getDay();
+    return day !== undefined && day >= 1 && day <= 5;
+  });
   const totalKehadiran = weekKehadiran.length;
   const hadirCount = weekKehadiran.filter(k => k.status.toLowerCase() === 'hadir').length;
   const kehadiranPct = totalKehadiran > 0 ? Math.round((hadirCount / totalKehadiran) * 1000) / 10 : 0;
@@ -141,10 +120,12 @@ export async function getDashboardData(id_santri: string, selectedWeekParam?: st
   // (per CLAUDE.md: these percentages must NOT be recomputed on-the-fly from raw rows)
   const weekProgres = progres.find(p => p.key_minggu === weekKey);
 
-  const weekZiyadah = sortByDateDesc(ziyadah.filter(z => z.key_minggu === weekKey), z => z.tanggal)[0];
-  const weekMurojaah = sortByDateDesc(murojaah.filter(m => m.key_minggu === weekKey), m => m.tanggal)[0];
-  const weekTibyan = sortByDateDesc(tibyan.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
-  const weekTarbiyyah = sortByDateDesc(tarbiyyah.filter(t => t.key_minggu === weekKey), t => t.tanggal)[0];
+  // Blank placeholder rows (unfilled future/weekend days pre-created by the sheet's
+  // weekly template) are excluded so "latest entry" picks real, filled-in data.
+  const weekZiyadah = sortByDateDesc(ziyadah.filter(z => z.key_minggu === weekKey && z.surat.trim() !== ''), z => z.tanggal)[0];
+  const weekMurojaah = sortByDateDesc(murojaah.filter(m => m.key_minggu === weekKey && m.surat_diulang.trim() !== ''), m => m.tanggal)[0];
+  const weekTibyan = sortByDateDesc(tibyan.filter(t => t.key_minggu === weekKey && (t.progres > 0 || t.target > 0 || (t.materi_huruf ?? '').trim() !== '')), t => t.tanggal)[0];
+  const weekTarbiyyah = sortByDateDesc(tarbiyyah.filter(t => t.key_minggu === weekKey && ((t.tema ?? '').trim() !== '' || (t.status_capaian ?? '').trim() !== '')), t => t.tanggal)[0];
   // Adab_Harian has one row per kategori (Sopan / Santun / Kedisiplinan) per week — show all three.
   const weekAdabRows = adabHarian
     .filter(a => a.key_minggu === weekKey)

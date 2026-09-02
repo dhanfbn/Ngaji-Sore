@@ -1,0 +1,301 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Santri {
+  id_santri       String    @id
+  nama            String
+  gender          String?
+  tanggal_lahir   DateTime  @db.Date
+  id_kelas        String?
+  ayah_ibu        String?
+  no_hp           String?
+  foto_url        String?
+  status_santri   String?
+  periode_belajar String?
+  created_at      DateTime?
+
+  kelas Kelas? @relation(fields: [id_kelas], references: [id_kelas])
+
+  kehadiran       Kehadiran[]
+  ziyadah         Ziyadah[]
+  murojaah        Murojaah[]
+  tibyan          Tibyan[]
+  tarbiyyah       Tarbiyyah[]
+  adabHarian      AdabHarian[]
+  catatanAnak     CatatanAnak[]
+  tugasRumah      TugasRumah[]
+  progresMingguan ProgresMingguan[]
+
+  @@index([id_kelas])
+}
+
+model Kelas {
+  id_kelas     String    @id
+  nama_kelas   String?
+  id_guru      String?
+  jadwal_kelas String?
+  jam_masuk    String?
+  jam_pulang   String?
+  created_at   DateTime?
+
+  guru Guru? @relation(fields: [id_guru], references: [id_guru])
+
+  santri      Santri[]
+  kehadiran   Kehadiran[]
+  ziyadah     Ziyadah[]
+  murojaah    Murojaah[]
+  tibyan      Tibyan[]
+  tarbiyyah   Tarbiyyah[]
+  adabHarian  AdabHarian[]
+  lessonPlan  LessonPlanMingguan[]
+  catatanAnak CatatanAnak[]
+  tugasRumah  TugasRumah[]
+
+  @@index([id_guru])
+}
+
+model Guru {
+  id_guru       String    @id
+  nama_guru     String
+  no_hp         String?
+  foto_url      String?
+  status_guru   String
+  // Tahap 2 prerequisite: teacher login is not built in Tahap 1, but the
+  // column is added now so Tahap 2 doesn't need another migration.
+  password_hash String?
+  created_at    DateTime?
+
+  kelas       Kelas[]
+  catatanAnak CatatanAnak[]
+}
+
+model MasterSurah {
+  id_surah    String @id
+  nama_surah  String
+  jumlah_ayat Int
+
+  ziyadah Ziyadah[]
+
+  @@map("Master_surah")
+}
+
+model Kehadiran {
+  id_kehadiran String   @id
+  id_santri    String
+  id_kelas     String
+  tanggal      DateTime @db.Date
+  status       String
+  catatan      String?
+  created_by   String?
+  key_minggu   String?
+  // actual daily check-in/out time, e.g. "07:45" — compared against Kelas.jam_masuk for punctuality
+  jam_masuk    String?
+  jam_pulang   String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model Ziyadah {
+  id_ziyadah   String   @id
+  id_santri    String
+  id_kelas     String
+  surat        String
+  id_surah     String?
+  ayat_dari    Int
+  ayat_sampai  Int
+  // display-only percentage string filled by teachers, e.g. "25%" — consumed as-is by dashboard.service.ts
+  progres_ayat String?
+  target_ayat  Int
+  tanggal      DateTime @db.Date
+  catatan_guru String?
+  created_by   String?
+  key_minggu   String?
+
+  santri      Santri       @relation(fields: [id_santri], references: [id_santri])
+  kelas       Kelas        @relation(fields: [id_kelas], references: [id_kelas])
+  masterSurah MasterSurah? @relation(fields: [id_surah], references: [id_surah])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([id_surah])
+  @@index([key_minggu])
+}
+
+model Murojaah {
+  id_murojaah       String   @id
+  id_santri         String
+  id_kelas          String
+  surat_diulang     String
+  // Lancar / Cukup Lancar / Perlu Diulang
+  status_kelancaran String
+  tanggal           DateTime @db.Date
+  catatan_guru      String?
+  created_by        String?
+  key_minggu        String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model Tibyan {
+  id_tibyan    String   @id
+  id_santri    String
+  id_kelas     String
+  materi_huruf String?
+  progres      Int
+  target       Int
+  tanggal      DateTime @db.Date
+  catatan_guru String?
+  created_by   String?
+  key_minggu   String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model Tarbiyyah {
+  id_tarbiyyah   String   @id
+  id_santri      String
+  id_kelas       String
+  tema           String?
+  status_capaian String?
+  tanggal        DateTime @db.Date
+  catatan_guru   String?
+  created_by     String?
+  key_minggu     String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model AdabHarian {
+  id_adab      String   @id
+  id_santri    String
+  id_kelas     String
+  kategori     String
+  nilai        Int
+  catatan_guru String?
+  tanggal      DateTime @db.Date
+  created_by   String?
+  key_minggu   String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+  @@map("Adab_Harian")
+}
+
+model LessonPlanMingguan {
+  // The sheet's id_lesson_plan is NOT reliably unique per row: older weeks
+  // reuse the same id across all 5 daily rows, and newer weeks leave it
+  // blank entirely (multiple rows share ""). It can't be a PK or even part
+  // of a composite unique key (some days now have 2-3 subjects). Kept as a
+  // plain, non-unique display field; row identity is the autoincrement id.
+  id              Int      @id @default(autoincrement())
+  id_lesson_plan  String?
+  id_kelas        String
+  key_minggu      String
+  tanggal_mulai   DateTime @db.Date
+  tanggal_selesai DateTime @db.Date
+  tema_minggu     String?
+  hari            String
+  kategori        String
+  materi          String?
+  created_by      String?
+
+  kelas Kelas @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model CatatanAnak {
+  id_catatan  String   @id
+  id_santri   String
+  id_kelas    String
+  id_guru     String?
+  tanggal     DateTime @db.Date
+  isi_catatan String
+  created_by  String?
+  // NOTE: the sheet's actual column header is "minggu_ke" (ISO week key, e.g.
+  // "2026-W21"), not "key_minggu" like the other tables — kept as-is on purpose,
+  // renaming is out of scope for this migration.
+  minggu_ke   String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+  guru   Guru?  @relation(fields: [id_guru], references: [id_guru])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([minggu_ke])
+}
+
+model TugasRumah {
+  id_tugas        String    @id
+  id_santri       String
+  id_kelas        String
+  deskripsi_tugas String
+  // "Belum" / "Selesai" — normalized case-insensitively where consumed
+  status          String
+  tanggal_dibuat  DateTime? @db.Date
+  created_by      String?
+  key_minggu      String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+  kelas  Kelas  @relation(fields: [id_kelas], references: [id_kelas])
+
+  @@index([id_santri])
+  @@index([id_kelas])
+  @@index([key_minggu])
+}
+
+model ProgresMingguan {
+  id_progres    String   @id
+  id_santri     String
+  tanggal       DateTime @db.Date
+  // Manually curated by staff — the authoritative source for 5 of the 6 KPI
+  // card percentages (only kehadiran is computed live from raw Kehadiran rows).
+  // Stored as 0-100, never derived/recomputed from other tables.
+  kehadiran_pct Float
+  ziyadah_pct   Float
+  murojaah_pct  Float
+  tibyan_pct    Float
+  tarbiyyah_pct Float
+  adab_pct      Float
+  key_minggu    String?
+
+  santri Santri @relation(fields: [id_santri], references: [id_santri])
+
+  @@index([id_santri])
+  @@index([key_minggu])
+}

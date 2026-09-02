@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { googleSheetsService } from '@/services/googleSheets.service';
+import { googleSheetsService } from '@/services/db.service';
 import { createSession } from '@/lib/session';
 import { z } from 'zod';
 
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     await createSession({
       id: student.id_santri,
       nama: student.nama,
+      role: 'santri',
     });
 
     return NextResponse.json({
