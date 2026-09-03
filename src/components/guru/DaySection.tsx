@@ -25,33 +25,46 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
   const dataKey = `${id_kelas}|${category.key}|${tanggal}`;
   const loading = expanded && loadedKey !== dataKey;
 
+  const hasAdabColumns = category.key === 'kehadiran' && category.columns.some((col) => col.targetCategory === 'adab_harian');
+
   useEffect(() => {
     if (!expanded || loadedKey === dataKey) return;
-    fetch(`/api/guru/entry?category=${category.key}&id_kelas=${encodeURIComponent(id_kelas)}&tanggal=${tanggal}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) {
-          setSantri(json.santri);
-          setEntries(json.entries);
-          setMasterSurah(json.masterSurah ?? []);
-          setLoadedKey(dataKey);
+    const qs = `id_kelas=${encodeURIComponent(id_kelas)}&tanggal=${tanggal}`;
+    Promise.all([
+      fetch(`/api/guru/entry?category=${category.key}&${qs}`).then((r) => r.json()),
+      hasAdabColumns ? fetch(`/api/guru/entry?category=adab_harian&${qs}`).then((r) => r.json()) : null,
+    ]).then(([json, adabJson]) => {
+      if (!json.success) return;
+      let entries = json.entries as Record<string, Record<string, unknown>>;
+      if (hasAdabColumns && adabJson?.success) {
+        entries = { ...entries };
+        for (const [id_santri, adabRow] of Object.entries(adabJson.entries as Record<string, Record<string, unknown>>)) {
+          entries[id_santri] = { ...entries[id_santri], ...adabRow };
         }
-      });
-  }, [expanded, dataKey, loadedKey, category.key, id_kelas, tanggal]);
+      }
+      setSantri(json.santri);
+      setEntries(entries);
+      setMasterSurah(json.masterSurah ?? []);
+      setLoadedKey(dataKey);
+    });
+  }, [expanded, dataKey, loadedKey, category.key, id_kelas, tanggal, hasAdabColumns]);
 
   const handleSaveRow = async (id_santri: string, rowData: Record<string, unknown>) => {
-    const data: Record<string, unknown> =
-      category.key === 'adab_harian'
-        ? { Sopan: rowData.Sopan, Santun: rowData.Santun, Kedisiplinan: rowData.Kedisiplinan }
-        : Object.fromEntries(category.columns.map((col: ColumnConfig) => [col.key, rowData[col.key]]));
+    const save = (cat: string, data: Record<string, unknown>) =>
+      fetch('/api/guru/entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: cat, id_santri, id_kelas, tanggal, key_minggu, data }),
+      }).then((r) => r.json());
 
-    const res = await fetch('/api/guru/entry', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category: category.key, id_santri, id_kelas, tanggal, key_minggu, data }),
-    });
-    const json = await res.json();
-    if (!json.success) throw new Error(json.message || 'Gagal menyimpan');
+    const ownColumns = category.columns.filter((col: ColumnConfig) => !col.targetCategory);
+    const data = Object.fromEntries(ownColumns.map((col) => [col.key, rowData[col.key]]));
+    const results = await Promise.all([
+      save(category.key, data),
+      hasAdabColumns ? save('adab_harian', { Sopan: rowData.Sopan, Santun: rowData.Santun, Kedisiplinan: rowData.Kedisiplinan }) : null,
+    ]);
+    const failed = results.find((json) => json && !json.success);
+    if (failed) throw new Error(failed.message || 'Gagal menyimpan');
   };
 
   const dynamicOptions =

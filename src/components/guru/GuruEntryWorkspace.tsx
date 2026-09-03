@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calculator } from 'lucide-react';
+import { Calculator, Loader2 } from 'lucide-react';
 import { GuruTabs } from './GuruTabs';
 import { DaySection } from './DaySection';
 import { WeeklyPanel } from './WeeklyPanel';
 import { TugasRumahPanel } from './TugasRumahPanel';
 import { GuruLogoutButton } from './LogoutButton';
+import { ComputeProgresModal } from './ComputeProgresModal';
 import { CATEGORIES } from './entryColumns';
 import { getDaysInWeek, todayDateStr } from '@/lib/weekDays';
 
@@ -35,6 +36,7 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].key);
   const [computeStatus, setComputeStatus] = useState<ComputeStatus>('idle');
   const [computeMessage, setComputeMessage] = useState('');
+  const [computeModalOpen, setComputeModalOpen] = useState(false);
 
   const selectedWeek = weeks.find((w) => w.key === selectedWeekKey);
   const days = selectedWeek?.tanggal_mulai ? getDaysInWeek(selectedWeek.tanggal_mulai) : [];
@@ -52,20 +54,29 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
       });
   }, [selectedKelas]);
 
-  const handleComputeProgres = async () => {
+  const handleComputeProgres = async (mode: 'selected' | 'all') => {
     if (!selectedKelas || !selectedWeekKey) return;
+    setComputeModalOpen(false);
     setComputeStatus('loading');
     setComputeMessage('');
     try {
       const res = await fetch('/api/guru/compute-progres', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_kelas: selectedKelas, key_minggu: selectedWeekKey }),
+        body: JSON.stringify({ id_kelas: selectedKelas, key_minggu: selectedWeekKey, mode }),
       });
       const json = await res.json();
       if (json.success) {
         setComputeStatus('done');
-        setComputeMessage(`Progres ${json.updated} santri berhasil dihitung ulang.`);
+        if (mode === 'all') {
+          setComputeMessage(
+            json.weeksProcessed > 0
+              ? `Progres berhasil dihitung ulang untuk ${json.weeksProcessed} minggu (${json.updated} entri santri).`
+              : 'Belum ada data minggu untuk kelas ini.'
+          );
+        } else {
+          setComputeMessage(`Progres ${json.updated} santri berhasil dihitung ulang.`);
+        }
       } else {
         setComputeStatus('error');
         setComputeMessage(json.message || 'Gagal menghitung progres.');
@@ -118,11 +129,11 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
             ))}
           </select>
           <button
-            onClick={handleComputeProgres}
+            onClick={() => setComputeModalOpen(true)}
             disabled={!selectedWeekKey || computeStatus === 'loading'}
             className="btn-3d flex items-center gap-2 h-10 rounded-xl px-4 bg-slate-700 text-white text-sm font-nunito font-bold disabled:opacity-50"
           >
-            <Calculator className="w-4 h-4" />
+            {computeStatus === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
             {computeStatus === 'loading' ? 'Menghitung...' : 'Hitung Progres Mingguan'}
           </button>
         </div>
@@ -131,6 +142,15 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
           <p className={`text-xs font-nunito mb-4 ${computeStatus === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
             {computeMessage}
           </p>
+        )}
+
+        {computeModalOpen && (
+          <ComputeProgresModal
+            weekLabel={selectedWeek?.label ?? ''}
+            weekKey={selectedWeekKey}
+            onCancel={() => setComputeModalOpen(false)}
+            onConfirm={handleComputeProgres}
+          />
         )}
 
         <GuruTabs active={activeCategory} onChange={(k) => setActiveCategory(k as typeof activeCategory)} />

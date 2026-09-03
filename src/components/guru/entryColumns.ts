@@ -10,6 +10,8 @@ export interface ColumnConfig {
   width?: string;
   /** On select, also set this row field to the chosen option's `meta` numeric value (e.g. Ziyadah's Surah -> Target Ayat). */
   autofillTargetKey?: string;
+  /** Column belongs to a different category's table (e.g. Adab Harian columns embedded in the Kehadiran form) — saved via a separate POST for that category. */
+  targetCategory?: 'adab_harian';
 }
 
 export interface CategoryConfig {
@@ -31,6 +33,9 @@ export const CATEGORIES: CategoryConfig[] = [
       { key: 'jam_masuk', label: 'Jam Masuk', type: 'time', width: 'w-24' },
       { key: 'jam_pulang', label: 'Jam Pulang', type: 'time', width: 'w-24' },
       { key: 'catatan', label: 'Catatan', type: 'text' },
+      { key: 'Sopan', label: 'Sopan', type: 'number', kategori: 'Sopan', width: 'w-20', targetCategory: 'adab_harian' },
+      { key: 'Santun', label: 'Santun', type: 'number', kategori: 'Santun', width: 'w-20', targetCategory: 'adab_harian' },
+      { key: 'Kedisiplinan', label: 'Kedisiplinan', type: 'number', kategori: 'Kedisiplinan', width: 'w-24', targetCategory: 'adab_harian' },
     ],
     defaultRow: { jam_masuk: '17:00', jam_pulang: '18:00' },
   },
@@ -72,15 +77,6 @@ export const CATEGORIES: CategoryConfig[] = [
       { key: 'tema', label: 'Tema', type: 'text' },
       { key: 'status_capaian', label: 'Status Capaian', type: 'text' },
       { key: 'catatan_guru', label: 'Catatan', type: 'text' },
-    ],
-  },
-  {
-    key: 'adab_harian',
-    label: 'Adab Harian',
-    columns: [
-      { key: 'Sopan', label: 'Sopan', type: 'number', kategori: 'Sopan', width: 'w-20' },
-      { key: 'Santun', label: 'Santun', type: 'number', kategori: 'Santun', width: 'w-20' },
-      { key: 'Kedisiplinan', label: 'Kedisiplinan', type: 'number', kategori: 'Kedisiplinan', width: 'w-24' },
     ],
   },
   {

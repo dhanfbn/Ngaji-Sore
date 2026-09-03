@@ -32,7 +32,8 @@ export async function POST(request: Request) {
   const body = await request.json();
   const id_kelas: string | undefined = body.id_kelas;
   const key_minggu: string | undefined = body.key_minggu;
-  if (!id_kelas || !key_minggu) {
+  const mode: 'selected' | 'all' = body.mode === 'all' ? 'all' : 'selected';
+  if (!id_kelas || (mode === 'selected' && !key_minggu)) {
     return NextResponse.json({ success: false, message: 'id_kelas dan key_minggu diperlukan' }, { status: 400 });
   }
 
@@ -41,62 +42,75 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Kelas tidak ditemukan.' }, { status: 403 });
   }
 
-  const lessonPlan = await prisma.lessonPlanMingguan.findFirst({ where: { id_kelas, key_minggu } });
-  const weekStart = lessonPlan?.tanggal_mulai ?? new Date();
+  const weekKeys =
+    mode === 'all'
+      ? (
+          await prisma.lessonPlanMingguan.findMany({
+            where: { id_kelas },
+            distinct: ['key_minggu'],
+            select: { key_minggu: true },
+          })
+        ).map((w) => w.key_minggu)
+      : [key_minggu!];
 
   const santriList = await prisma.santri.findMany({ where: { id_kelas }, select: { id_santri: true } });
 
   let updated = 0;
-  for (const { id_santri } of santriList) {
-    const [kehadiran, ziyadah, murojaah, tibyan, tarbiyyah, adab] = await Promise.all([
-      prisma.kehadiran.findMany({ where: { id_santri, key_minggu } }),
-      prisma.ziyadah.findMany({ where: { id_santri, key_minggu } }),
-      prisma.murojaah.findMany({ where: { id_santri, key_minggu } }),
-      prisma.tibyan.findMany({ where: { id_santri, key_minggu } }),
-      prisma.tarbiyyah.findMany({ where: { id_santri, key_minggu } }),
-      prisma.adabHarian.findMany({ where: { id_santri, key_minggu } }),
-    ]);
+  for (const wk of weekKeys) {
+    const lessonPlan = await prisma.lessonPlanMingguan.findFirst({ where: { id_kelas, key_minggu: wk } });
+    const weekStart = lessonPlan?.tanggal_mulai ?? new Date();
 
-    const weekdayKehadiran = kehadiran.filter((k) => isWeekday(k.tanggal));
-    const kehadiran_pct =
-      weekdayKehadiran.length > 0
-        ? Math.round(
-            (weekdayKehadiran.filter((k) => k.status.toLowerCase() === 'hadir').length / weekdayKehadiran.length) * 1000
-          ) / 10
-        : 0;
+    for (const { id_santri } of santriList) {
+      const [kehadiran, ziyadah, murojaah, tibyan, tarbiyyah, adab] = await Promise.all([
+        prisma.kehadiran.findMany({ where: { id_santri, key_minggu: wk } }),
+        prisma.ziyadah.findMany({ where: { id_santri, key_minggu: wk } }),
+        prisma.murojaah.findMany({ where: { id_santri, key_minggu: wk } }),
+        prisma.tibyan.findMany({ where: { id_santri, key_minggu: wk } }),
+        prisma.tarbiyyah.findMany({ where: { id_santri, key_minggu: wk } }),
+        prisma.adabHarian.findMany({ where: { id_santri, key_minggu: wk } }),
+      ]);
 
-    const ziyadah_pct = avg(
-      ziyadah
-        .map((z) => parseFloat((z.progres_ayat ?? '').replace('%', '')))
-        .filter((n) => !Number.isNaN(n))
-    );
+      const weekdayKehadiran = kehadiran.filter((k) => isWeekday(k.tanggal));
+      const kehadiran_pct =
+        weekdayKehadiran.length > 0
+          ? Math.round(
+              (weekdayKehadiran.filter((k) => k.status.toLowerCase() === 'hadir').length / weekdayKehadiran.length) * 1000
+            ) / 10
+          : 0;
 
-    const murojaah_pct = avg(
-      murojaah
-        .map((m) => MUROJAAH_PCT[m.status_kelancaran])
-        .filter((n): n is number => n !== undefined)
-    );
+      const ziyadah_pct = avg(
+        ziyadah
+          .map((z) => parseFloat((z.progres_ayat ?? '').replace('%', '')))
+          .filter((n) => !Number.isNaN(n))
+      );
 
-    const tibyan_pct = avg(
-      tibyan.filter((t) => t.target > 0).map((t) => (t.progres / t.target) * 100)
-    );
+      const murojaah_pct = avg(
+        murojaah
+          .map((m) => MUROJAAH_PCT[m.status_kelancaran])
+          .filter((n): n is number => n !== undefined)
+      );
 
-    const tarbiyyah_pct = tarbiyyah.some((t) => (t.status_capaian ?? '').trim() !== '') ? 100 : 0;
+      const tibyan_pct = avg(
+        tibyan.filter((t) => t.target > 0).map((t) => (t.progres / t.target) * 100)
+      );
 
-    const adab_pct = avg(adab.map((a) => a.nilai));
+      const tarbiyyah_pct = tarbiyyah.some((t) => (t.status_capaian ?? '').trim() !== '') ? 100 : 0;
 
-    const data = { kehadiran_pct, ziyadah_pct, murojaah_pct, tibyan_pct, tarbiyyah_pct, adab_pct };
-    const existing = await prisma.progresMingguan.findFirst({ where: { id_santri, key_minggu } });
+      const adab_pct = avg(adab.map((a) => a.nilai));
 
-    if (existing) {
-      await prisma.progresMingguan.update({ where: { id_progres: existing.id_progres }, data });
-    } else {
-      await prisma.progresMingguan.create({
-        data: { id_progres: randomUUID(), id_santri, tanggal: weekStart, key_minggu, ...data },
-      });
+      const data = { kehadiran_pct, ziyadah_pct, murojaah_pct, tibyan_pct, tarbiyyah_pct, adab_pct };
+      const existing = await prisma.progresMingguan.findFirst({ where: { id_santri, key_minggu: wk } });
+
+      if (existing) {
+        await prisma.progresMingguan.update({ where: { id_progres: existing.id_progres }, data });
+      } else {
+        await prisma.progresMingguan.create({
+          data: { id_progres: randomUUID(), id_santri, tanggal: weekStart, key_minggu: wk, ...data },
+        });
+      }
+      updated++;
     }
-    updated++;
   }
 
-  return NextResponse.json({ success: true, updated });
+  return NextResponse.json({ success: true, updated, weeksProcessed: weekKeys.length });
 }
