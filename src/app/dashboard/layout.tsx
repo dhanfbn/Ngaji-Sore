@@ -13,8 +13,9 @@ export default async function DashboardLayout({
   if (!session || !session.user) {
     redirect('/login');
   }
-  if ((session.user.role ?? 'santri') === 'guru') {
-    redirect('/guru/dashboard');
+  const role = session.user.role ?? 'santri';
+  if (role !== 'santri') {
+    redirect(role === 'guru' ? '/guru/dashboard' : '/admin/dashboard');
   }
 
   const headerInfo = await getHeaderInfo(session.user.id);

@@ -11,7 +11,8 @@
     "db:migrate": "tsx scripts/migrate-to-postgres.ts",
     "db:verify": "tsx scripts/verify-parity.ts",
     "db:verify:diff": "tsx scripts/diff-parity.ts",
-    "db:seed-guru-passwords": "tsx scripts/seed-guru-passwords.ts"
+    "db:seed-guru-passwords": "tsx scripts/seed-guru-passwords.ts",
+    "db:seed-admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

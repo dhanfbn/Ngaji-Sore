@@ -78,6 +78,13 @@ model Guru {
   catatanAnak CatatanAnak[]
 }
 
+model Admin {
+  id_admin      String    @id
+  nama          String
+  password_hash String
+  created_at    DateTime?
+}
+
 model MasterSurah {
   id_surah    String @id
   nama_surah  String
