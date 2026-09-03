@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Calculator } from 'lucide-react';
 import { GuruTabs } from './GuruTabs';
 import { DaySection } from './DaySection';
+import { WeeklyPanel } from './WeeklyPanel';
+import { TugasRumahPanel } from './TugasRumahPanel';
 import { GuruLogoutButton } from './LogoutButton';
 import { CATEGORIES } from './entryColumns';
 import { getDaysInWeek, todayDateStr } from '@/lib/weekDays';
@@ -134,7 +136,20 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
         <GuruTabs active={activeCategory} onChange={(k) => setActiveCategory(k as typeof activeCategory)} />
 
         <div className="mt-4 space-y-4">
-          {days.length === 0 ? (
+          {activeCategory === 'tugas_rumah' ? (
+            <TugasRumahPanel
+              key={`${selectedKelas}-${selectedWeekKey}`}
+              id_kelas={selectedKelas}
+              key_minggu={selectedWeekKey}
+            />
+          ) : category.granularity === 'weekly' ? (
+            <WeeklyPanel
+              key={`${activeCategory}-${selectedKelas}-${selectedWeekKey}`}
+              category={category}
+              id_kelas={selectedKelas}
+              key_minggu={selectedWeekKey}
+            />
+          ) : days.length === 0 ? (
             <div className="card-3d bg-white rounded-3xl p-8 text-center">
               <p className="text-sm text-slate-400 font-nunito">Pilih kelas dan minggu dulu.</p>
             </div>

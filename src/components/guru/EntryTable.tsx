@@ -97,6 +97,13 @@ function EntryRow({
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+          ) : col.type === 'textarea' ? (
+            <textarea
+              rows={2}
+              value={inputValue(data[col.key])}
+              onChange={(e) => handleChange(col, e.target.value)}
+              className="w-full rounded-lg bg-slate-50 border border-slate-200 text-sm px-2 py-1.5 focus:bg-white focus:border-green-400 resize-y"
+            />
           ) : (
             <input
               type={col.type === 'number' ? 'number' : col.type === 'time' ? 'time' : 'text'}
