@@ -1,4 +1,4 @@
-export type ColumnType = 'text' | 'number' | 'select' | 'time';
+export type ColumnType = 'text' | 'number' | 'select' | 'time' | 'textarea';
 
 export interface ColumnConfig {
   key: string;
@@ -13,11 +13,13 @@ export interface ColumnConfig {
 }
 
 export interface CategoryConfig {
-  key: 'kehadiran' | 'ziyadah' | 'murojaah' | 'tibyan' | 'tarbiyyah' | 'adab_harian';
+  key: 'kehadiran' | 'ziyadah' | 'murojaah' | 'tibyan' | 'tarbiyyah' | 'adab_harian' | 'catatan_anak' | 'tugas_rumah';
   label: string;
   columns: ColumnConfig[];
   /** Prefilled for a santri with no existing row yet; saved values from the server always override these. */
   defaultRow?: Record<string, string>;
+  /** 'daily' (default): one row per santri per selected hari. 'weekly': one row per santri per selected minggu, no hari breakdown. */
+  granularity?: 'daily' | 'weekly';
 }
 
 export const CATEGORIES: CategoryConfig[] = [
@@ -79,6 +81,22 @@ export const CATEGORIES: CategoryConfig[] = [
       { key: 'Sopan', label: 'Sopan', type: 'number', kategori: 'Sopan', width: 'w-20' },
       { key: 'Santun', label: 'Santun', type: 'number', kategori: 'Santun', width: 'w-20' },
       { key: 'Kedisiplinan', label: 'Kedisiplinan', type: 'number', kategori: 'Kedisiplinan', width: 'w-24' },
+    ],
+  },
+  {
+    key: 'catatan_anak',
+    label: 'Catatan Anak',
+    columns: [
+      { key: 'isi_catatan', label: 'Catatan', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'tugas_rumah',
+    label: 'Tugas Rumah',
+    granularity: 'weekly',
+    columns: [
+      { key: 'deskripsi_tugas', label: 'Deskripsi Tugas', type: 'text' },
+      { key: 'status', label: 'Status', type: 'select', options: ['Belum', 'Selesai'] },
     ],
   },
 ];

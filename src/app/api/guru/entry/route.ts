@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { requireGuru } from '@/lib/guru-auth';
 import { z } from 'zod';
 
-const CATEGORIES = ['kehadiran', 'ziyadah', 'murojaah', 'tibyan', 'tarbiyyah', 'adab_harian'] as const;
+const CATEGORIES = ['kehadiran', 'ziyadah', 'murojaah', 'tibyan', 'tarbiyyah', 'adab_harian', 'catatan_anak', 'tugas_rumah'] as const;
 type Category = (typeof CATEGORIES)[number];
+const WEEKLY_CATEGORIES: Category[] = ['tugas_rumah'];
 
 function toUtcDateOnly(s: string): Date {
   const [y, m, d] = s.split('-').map(Number);
@@ -29,15 +30,20 @@ export async function GET(request: Request) {
   const category = searchParams.get('category') as Category | null;
   const id_kelas = searchParams.get('id_kelas');
   const tanggalStr = searchParams.get('tanggal');
+  const key_minggu = searchParams.get('key_minggu');
 
-  if (!category || !CATEGORIES.includes(category) || !id_kelas || !tanggalStr) {
-    return NextResponse.json({ success: false, message: 'category, id_kelas, tanggal diperlukan' }, { status: 400 });
+  if (!category || !CATEGORIES.includes(category) || !id_kelas) {
+    return NextResponse.json({ success: false, message: 'category dan id_kelas diperlukan' }, { status: 400 });
+  }
+  const isWeekly = WEEKLY_CATEGORIES.includes(category);
+  if (isWeekly ? !key_minggu : !tanggalStr) {
+    return NextResponse.json({ success: false, message: isWeekly ? 'key_minggu diperlukan' : 'tanggal diperlukan' }, { status: 400 });
   }
 
   const owns = await prisma.kelas.findFirst({ where: { id_kelas, id_guru: guru.id } });
   if (!owns) return forbidden();
 
-  const tanggal = toUtcDateOnly(tanggalStr);
+  const tanggal = tanggalStr ? toUtcDateOnly(tanggalStr) : undefined;
   const santri = await prisma.santri.findMany({
     where: { id_kelas },
     orderBy: { nama: 'asc' },
@@ -45,7 +51,8 @@ export async function GET(request: Request) {
   });
   const ids = santri.map((s) => s.id_santri);
 
-  const entries: Record<string, Record<string, unknown>> = {};
+  // Most categories: one row-object per santri. tugas_rumah: an array of tasks per santri.
+  const entries: Record<string, unknown> = {};
   let masterSurah: { id_surah: string; nama_surah: string; jumlah_ayat: number }[] | undefined;
 
   switch (category) {
@@ -103,6 +110,29 @@ export async function GET(request: Request) {
       }
       break;
     }
+    case 'catatan_anak': {
+      const rows = await prisma.catatanAnak.findMany({ where: { id_santri: { in: ids }, tanggal } });
+      for (const r of rows) {
+        entries[r.id_santri] = { isi_catatan: r.isi_catatan };
+      }
+      break;
+    }
+    case 'tugas_rumah': {
+      // A santri can have multiple homework tasks in the same week, so this
+      // returns an array per santri (unlike every other category's single
+      // row-object) — blank weekly-template placeholder rows are excluded,
+      // they're not real tasks.
+      const rows = await prisma.tugasRumah.findMany({
+        where: { id_santri: { in: ids }, key_minggu, NOT: { deskripsi_tugas: '' } },
+        orderBy: { id_tugas: 'asc' },
+      });
+      for (const r of rows) {
+        const list = (entries[r.id_santri] as { id: string; deskripsi_tugas: string; status: string }[] | undefined) ?? [];
+        list.push({ id: r.id_tugas, deskripsi_tugas: r.deskripsi_tugas, status: r.status });
+        entries[r.id_santri] = list;
+      }
+      break;
+    }
   }
 
   return NextResponse.json({ success: true, santri, entries, masterSurah });
@@ -145,13 +175,24 @@ const AdabData = z.object({
   Santun: z.coerce.number().optional(),
   Kedisiplinan: z.coerce.number().optional(),
 });
+const CatatanAnakData = z.object({
+  isi_catatan: z.string().optional(),
+});
+const TugasRumahData = z.object({
+  deskripsi_tugas: z.string().optional(),
+  status: z.string().optional(),
+});
 
 const BodySchema = z.object({
   category: z.enum(CATEGORIES),
   id_santri: z.string().min(1),
   id_kelas: z.string().min(1),
-  tanggal: z.string().min(1),
+  tanggal: z.string().optional(),
   key_minggu: z.string().optional(),
+  // Only used by tugas_rumah: targets a specific task to update. Omitted
+  // (or unrecognized) -> always creates a new task, since a santri can have
+  // more than one per week.
+  id: z.string().optional(),
   data: z.record(z.string(), z.unknown()),
 });
 
@@ -164,12 +205,17 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ success: false, message: 'Invalid input' }, { status: 400 });
   }
-  const { category, id_santri, id_kelas, tanggal: tanggalStr, key_minggu, data } = parsed.data;
+  const { category, id_santri, id_kelas, tanggal: tanggalStr, key_minggu, id: taskId, data } = parsed.data;
+
+  const isWeekly = WEEKLY_CATEGORIES.includes(category);
+  if (isWeekly ? !key_minggu : !tanggalStr) {
+    return NextResponse.json({ success: false, message: isWeekly ? 'key_minggu diperlukan' : 'tanggal diperlukan' }, { status: 400 });
+  }
 
   const owns = await prisma.kelas.findFirst({ where: { id_kelas, id_guru: guru.id } });
   if (!owns) return forbidden();
 
-  const tanggal = toUtcDateOnly(tanggalStr);
+  const tanggal = tanggalStr ? toUtcDateOnly(tanggalStr) : undefined;
 
   try {
     switch (category) {
@@ -182,7 +228,7 @@ export async function POST(request: Request) {
           await prisma.kehadiran.create({
             data: {
               id_kehadiran: randomUUID(),
-              id_santri, id_kelas, tanggal,
+              id_santri, id_kelas, tanggal: tanggal!,
               status: d.status ?? '',
               catatan: d.catatan, jam_masuk: d.jam_masuk, jam_pulang: d.jam_pulang,
               key_minggu, created_by: guru.id,
@@ -208,7 +254,7 @@ export async function POST(request: Request) {
           await prisma.ziyadah.create({
             data: {
               id_ziyadah: randomUUID(),
-              id_santri, id_kelas, tanggal,
+              id_santri, id_kelas, tanggal: tanggal!,
               surat: surat ?? '',
               id_surah: d.id_surah,
               ayat_dari: d.ayat_dari ?? 0,
@@ -231,7 +277,7 @@ export async function POST(request: Request) {
           await prisma.murojaah.create({
             data: {
               id_murojaah: randomUUID(),
-              id_santri, id_kelas, tanggal,
+              id_santri, id_kelas, tanggal: tanggal!,
               surat_diulang: d.surat_diulang ?? '',
               status_kelancaran: d.status_kelancaran ?? '',
               catatan_guru: d.catatan_guru,
@@ -250,7 +296,7 @@ export async function POST(request: Request) {
           await prisma.tibyan.create({
             data: {
               id_tibyan: randomUUID(),
-              id_santri, id_kelas, tanggal,
+              id_santri, id_kelas, tanggal: tanggal!,
               materi_huruf: d.materi_huruf,
               progres: d.progres ?? 0,
               target: d.target ?? 0,
@@ -270,7 +316,7 @@ export async function POST(request: Request) {
           await prisma.tarbiyyah.create({
             data: {
               id_tarbiyyah: randomUUID(),
-              id_santri, id_kelas, tanggal,
+              id_santri, id_kelas, tanggal: tanggal!,
               tema: d.tema,
               status_capaian: d.status_capaian,
               catatan_guru: d.catatan_guru,
@@ -294,13 +340,58 @@ export async function POST(request: Request) {
             await prisma.adabHarian.create({
               data: {
                 id_adab: randomUUID(),
-                id_santri, id_kelas, tanggal, kategori, nilai,
+                id_santri, id_kelas, tanggal: tanggal!, kategori, nilai,
                 key_minggu, created_by: guru.id,
               },
             });
           }
         }
         break;
+      }
+      case 'catatan_anak': {
+        const d = CatatanAnakData.parse(data);
+        const existing = await prisma.catatanAnak.findFirst({ where: { id_santri, tanggal } });
+        if (existing) {
+          await prisma.catatanAnak.update({ where: { id_catatan: existing.id_catatan }, data: { ...d, id_kelas, id_guru: guru.id } });
+        } else {
+          await prisma.catatanAnak.create({
+            data: {
+              id_catatan: randomUUID(),
+              id_santri, id_kelas, tanggal: tanggal!,
+              isi_catatan: d.isi_catatan ?? '',
+              id_guru: guru.id,
+              minggu_ke: key_minggu, created_by: guru.id,
+            },
+          });
+        }
+        break;
+      }
+      case 'tugas_rumah': {
+        const d = TugasRumahData.parse(data);
+        // A santri can have multiple tasks per week, so this is not find-or-create
+        // by natural key like the other categories — `taskId` (if given) targets
+        // one specific existing task; otherwise a new task is always created.
+        const existing = taskId
+          ? await prisma.tugasRumah.findFirst({ where: { id_tugas: taskId, id_santri, id_kelas } })
+          : null;
+        if (taskId && !existing) {
+          return NextResponse.json({ success: false, message: 'Tugas tidak ditemukan.' }, { status: 404 });
+        }
+        if (existing) {
+          await prisma.tugasRumah.update({ where: { id_tugas: existing.id_tugas }, data: { ...d, id_kelas } });
+          return NextResponse.json({ success: true, id: existing.id_tugas });
+        }
+        const created = await prisma.tugasRumah.create({
+          data: {
+            id_tugas: randomUUID(),
+            id_santri, id_kelas,
+            deskripsi_tugas: d.deskripsi_tugas ?? '',
+            status: d.status ?? '',
+            tanggal_dibuat: new Date(),
+            key_minggu, created_by: guru.id,
+          },
+        });
+        return NextResponse.json({ success: true, id: created.id_tugas });
       }
     }
   } catch (e) {
