@@ -13,9 +13,10 @@ interface DaySectionProps {
   hari: string;
   tanggal: string;
   defaultExpanded: boolean;
+  defaultRow?: Record<string, string>;
 }
 
-export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defaultExpanded }: DaySectionProps) {
+export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defaultExpanded, defaultRow }: DaySectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [loadedKey, setLoadedKey] = useState('');
   const [santri, setSantri] = useState<{ id_santri: string; nama: string }[]>([]);
@@ -30,9 +31,13 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
   useEffect(() => {
     if (!expanded || loadedKey === dataKey) return;
     const qs = `id_kelas=${encodeURIComponent(id_kelas)}&tanggal=${tanggal}`;
+    const fetchJson = (url: string) => fetch(url).then(async (response) => {
+      if (!response.ok) throw new Error('Gagal memuat data');
+      return response.json();
+    });
     Promise.all([
-      fetch(`/api/guru/entry?category=${category.key}&${qs}`).then((r) => r.json()),
-      hasAdabColumns ? fetch(`/api/guru/entry?category=adab_harian&${qs}`).then((r) => r.json()) : null,
+      fetchJson(`/api/guru/entry?category=${category.key}&${qs}`),
+      hasAdabColumns ? fetchJson(`/api/guru/entry?category=adab_harian&${qs}`) : null,
     ]).then(([json, adabJson]) => {
       if (!json.success) return;
       let entries = json.entries as Record<string, Record<string, unknown>>;
@@ -75,7 +80,12 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
   return (
     <div className="card-3d bg-white rounded-3xl overflow-hidden">
       <button
-        onClick={() => setExpanded((e) => !e)}
+         onClick={() => {
+           setExpanded((e) => {
+             if (e) setLoadedKey('');
+             return !e;
+           });
+         }}
         className="w-full flex items-center gap-3 px-4 sm:px-6 py-4 text-left"
       >
         <span className={`inline-block w-3 h-3 rounded-full ${expanded ? 'bg-emerald-500' : 'bg-slate-300'}`} aria-hidden="true" />
@@ -93,7 +103,7 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
               entries={entries}
               onSaveRow={handleSaveRow}
               dynamicOptions={dynamicOptions}
-              defaultRow={category.defaultRow}
+              defaultRow={defaultRow ?? category.defaultRow}
             />
           )}
         </div>

@@ -13,7 +13,7 @@ export default async function GuruDashboardPage() {
   const kelasList = await prisma.kelas.findMany({
     where: { id_guru: session.user.id },
     orderBy: { nama_kelas: 'asc' },
-    select: { id_kelas: true, nama_kelas: true },
+    select: { id_kelas: true, nama_kelas: true, jam_masuk: true, jam_pulang: true },
   });
 
   return <GuruEntryWorkspace guruNama={session.user.nama} kelasList={kelasList} />;

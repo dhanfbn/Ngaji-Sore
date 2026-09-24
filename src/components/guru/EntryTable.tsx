@@ -144,8 +144,8 @@ export function EntryTable({ columns, santri, entries, onSaveRow, dynamicOptions
         <tbody>
           {santri.map((s) => (
             <EntryRow
-              key={s.id_santri}
-              santriRow={s}
+              key={`${s.id_santri}-${JSON.stringify(entries[s.id_santri] ?? defaultRow ?? {})}`}
+               santriRow={s}
               columns={columns}
               initialData={{ ...defaultRow, ...entries[s.id_santri] }}
               onSaveRow={onSaveRow}

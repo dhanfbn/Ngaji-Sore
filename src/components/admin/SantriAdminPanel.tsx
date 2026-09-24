@@ -84,6 +84,20 @@ export function SantriAdminPanel() {
   const [form, setForm] = useState({ id_santri: '', nama: '', gender: '', tanggal_lahir: '', id_kelas: '', ayah_ibu: '', no_hp: '', status_santri: 'aktif', periode_belajar: '' });
   const [formError, setFormError] = useState('');
   const [formSaving, setFormSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
+  const [kelasFilter, setKelasFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const filteredList = list.filter((row) => {
+    const searchValue = search.toLowerCase();
+    const matchesSearch = [row.id_santri, row.nama, row.id_kelas, row.status_santri]
+      .some((value) => value?.toLowerCase().includes(searchValue));
+    return matchesSearch
+      && (!genderFilter || row.gender === genderFilter)
+      && (!kelasFilter || row.id_kelas === kelasFilter)
+      && (!statusFilter || row.status_santri === statusFilter);
+  });
 
   const load = () => {
     Promise.all([
@@ -161,21 +175,59 @@ export function SantriAdminPanel() {
           <p className="text-sm text-slate-400 font-nunito py-8 text-center">Memuat...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse min-w-[960px]">
-              <thead>
-                <tr className="border-b-2 border-border">
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">ID</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Nama</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Gender</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Tgl Lahir</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Kelas</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Ayah/Ibu</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">No HP</th>
-                  <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((row) => (
+             <p className="text-xs font-bold text-slate-500 uppercase mb-2">Filters</p>
+             <div className="flex flex-wrap gap-3 mb-4">
+               <div>
+                 <label className="text-xs font-bold text-slate-500 uppercase block mb-1">ID / Nama</label>
+                 <input
+                   value={search}
+                   onChange={(e) => setSearch(e.target.value)}
+                   placeholder="Cari..."
+                   aria-label="Cari ID atau nama santri"
+                   className="h-9 rounded-lg bg-slate-50 border border-slate-200 text-sm px-3 min-w-64"
+                 />
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Gender</label>
+                 <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)} aria-label="Filter gender" className="h-9 rounded-lg bg-slate-50 border border-slate-200 text-sm px-2">
+                   <option value="">Semua Gender</option>
+                   {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                 </select>
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Kelas</label>
+                 <select value={kelasFilter} onChange={(e) => setKelasFilter(e.target.value)} aria-label="Filter kelas" className="h-9 rounded-lg bg-slate-50 border border-slate-200 text-sm px-2">
+                   <option value="">Semua Kelas</option>
+                   {kelasOptions.map((k) => <option key={k.id_kelas} value={k.id_kelas}>{k.nama_kelas ?? k.id_kelas}</option>)}
+                 </select>
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Status</label>
+                 <input
+                   value={statusFilter}
+                   onChange={(e) => setStatusFilter(e.target.value)}
+                   placeholder="Semua Status"
+                   aria-label="Filter status"
+                   className="h-9 rounded-lg bg-slate-50 border border-slate-200 text-sm px-3 w-36"
+                 />
+               </div>
+             </div>
+             <table className="w-full text-sm border-collapse min-w-[960px]">
+               <thead>
+                 <tr className="border-b-2 border-border">
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">ID</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Nama</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Gender</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Tgl Lahir</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Kelas</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Ayah/Ibu</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">No HP</th>
+                   <th className="text-left font-bold text-muted-foreground text-xs uppercase tracking-wide py-3 pr-4">Status</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {filteredList.map((row) => (
+
                   <SantriRow
                     key={row.id_santri}
                     row={row}

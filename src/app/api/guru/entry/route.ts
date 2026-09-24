@@ -221,7 +221,7 @@ export async function POST(request: Request) {
     switch (category) {
       case 'kehadiran': {
         const d = KehadiranData.parse(data);
-        const existing = await prisma.kehadiran.findFirst({ where: { id_santri, tanggal } });
+        const existing = await prisma.kehadiran.findFirst({ where: { id_santri, id_kelas, tanggal } });
         if (existing) {
           await prisma.kehadiran.update({ where: { id_kehadiran: existing.id_kehadiran }, data: { ...d, id_kelas } });
         } else {

@@ -16,6 +16,8 @@ type ComputeStatus = 'idle' | 'loading' | 'done' | 'error';
 interface Kelas {
   id_kelas: string;
   nama_kelas: string | null;
+  jam_masuk: string | null;
+  jam_pulang: string | null;
 }
 
 interface Week {
@@ -39,6 +41,7 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
   const [computeModalOpen, setComputeModalOpen] = useState(false);
 
   const selectedWeek = weeks.find((w) => w.key === selectedWeekKey);
+  const selectedKelasData = kelasList.find((kelas) => kelas.id_kelas === selectedKelas);
   const days = selectedWeek?.tanggal_mulai ? getDaysInWeek(selectedWeek.tanggal_mulai) : [];
 
   // Fetch weeks when kelas changes.
@@ -182,8 +185,12 @@ export function GuruEntryWorkspace({ guruNama, kelasList }: GuruEntryWorkspacePr
                 key_minggu={selectedWeekKey}
                 hari={d.hari}
                 tanggal={d.tanggal}
-                defaultExpanded={d.tanggal === defaultOpenTanggal}
-              />
+                 defaultExpanded={d.tanggal === defaultOpenTanggal}
+                 defaultRow={activeCategory === 'kehadiran' ? {
+                   jam_masuk: selectedKelasData?.jam_masuk ?? '',
+                   jam_pulang: selectedKelasData?.jam_pulang ?? '',
+                 } : undefined}
+               />
             ))
           )}
         </div>
