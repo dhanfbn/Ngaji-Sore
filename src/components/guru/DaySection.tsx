@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { EntryTable } from './EntryTable';
+import { MurojaahTable } from './MurojaahTable';
 import { formatFullDate } from '@/lib/weekDays';
 import type { ColumnConfig, CategoryConfig } from './entryColumns';
 
@@ -20,10 +21,15 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [loadedKey, setLoadedKey] = useState('');
   const [santri, setSantri] = useState<{ id_santri: string; nama: string }[]>([]);
-  const [entries, setEntries] = useState<Record<string, Record<string, unknown>>>({});
+  const [entries, setEntries] = useState<Record<string, Record<string, unknown> | Record<string, unknown>[]>>({});
   const [masterSurah, setMasterSurah] = useState<{ id_surah: string; nama_surah: string; jumlah_ayat: number }[]>([]);
 
   const dataKey = `${id_kelas}|${category.key}|${tanggal}`;
+  const previousDate = new Date(`${tanggal}T00:00:00`);
+  const day = previousDate.getDay();
+  previousDate.setDate(previousDate.getDate() - (day === 1 ? 3 : 1));
+  const previousDateValue = previousDate.toISOString().slice(0, 10);
+  const previousDateLabel = previousDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const loading = expanded && loadedKey !== dataKey;
 
   const hasAdabColumns = category.key === 'kehadiran' && category.columns.some((col) => col.targetCategory === 'adab_harian');
@@ -96,11 +102,28 @@ export function DaySection({ category, id_kelas, key_minggu, hari, tanggal, defa
         <div className="px-4 sm:px-6 pb-4 sm:pb-6">
           {loading ? (
             <p className="text-sm text-slate-400 font-nunito py-8 text-center">Memuat...</p>
+          ) : category.key === 'murojaah' ? (
+            <MurojaahTable santri={santri} entries={entries as Record<string, { id_murojaah?: string; surat_diulang: string; status_kelancaran: string; catatan_guru: string }[]>} onDeleteRow={async (id, id_santri) => {
+              const response = await fetch('/api/guru/entry', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, id_santri, id_kelas }) });
+              const json = await response.json();
+              if (!json.success) throw new Error(json.message || 'Gagal menghapus');
+            }} previousDateLabel={previousDateLabel} onImportPrevious={async () => {
+              const response = await fetch(`/api/guru/entry?category=murojaah&id_kelas=${encodeURIComponent(id_kelas)}&tanggal=${previousDateValue}`);
+              const json = await response.json();
+              if (!json.success) throw new Error(json.message || 'Gagal mengambil data sebelumnya');
+              const previousEntries = json.entries as Record<string, { surat_diulang: string; status_kelancaran: string; catatan_guru: string }[]>;
+              await Promise.all(Object.entries(previousEntries).flatMap(([id_santri, rows]) => rows.filter((row) => ['Cukup Lancar', 'Perlu Diulang'].includes(row.status_kelancaran)).map((row) => fetch('/api/guru/entry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: 'murojaah', id_santri, id_kelas, tanggal, key_minggu, data: row }) }))));
+              setLoadedKey('');
+            }} onSaveRow={async (id_santri, data, id) => {
+              const response = await fetch('/api/guru/entry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: 'murojaah', id, id_santri, id_kelas, tanggal, key_minggu, data }) });
+              const json = await response.json();
+              if (!json.success) throw new Error(json.message || 'Gagal menyimpan');
+            }} />
           ) : (
             <EntryTable
               columns={category.columns}
               santri={santri}
-              entries={entries}
+              entries={entries as Record<string, Record<string, unknown>>}
               onSaveRow={handleSaveRow}
               dynamicOptions={dynamicOptions}
               defaultRow={defaultRow ?? category.defaultRow}

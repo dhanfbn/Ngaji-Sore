@@ -82,9 +82,10 @@ export async function GET(request: Request) {
       break;
     }
     case 'murojaah': {
-      const rows = await prisma.murojaah.findMany({ where: { id_santri: { in: ids }, tanggal } });
+      const rows = await prisma.murojaah.findMany({ where: { id_santri: { in: ids }, tanggal }, orderBy: { id_murojaah: 'asc' } });
       for (const r of rows) {
-        entries[r.id_santri] = { surat_diulang: r.surat_diulang, status_kelancaran: r.status_kelancaran, catatan_guru: r.catatan_guru ?? '' };
+        const row = entries[r.id_santri] as unknown[] | undefined;
+        entries[r.id_santri] = [...(row ?? []), { id_murojaah: r.id_murojaah, surat_diulang: r.surat_diulang, status_kelancaran: r.status_kelancaran, catatan_guru: r.catatan_guru ?? '' }];
       }
       break;
     }
@@ -196,6 +197,19 @@ const BodySchema = z.object({
   data: z.record(z.string(), z.unknown()),
 });
 
+export async function DELETE(request: Request) {
+  const guru = await requireGuru();
+  if (!guru) return unauthorized();
+  const { id, id_santri, id_kelas } = await request.json();
+  if (!id || !id_santri || !id_kelas) return NextResponse.json({ success: false, message: 'Data tidak lengkap' }, { status: 400 });
+  const owns = await prisma.kelas.findFirst({ where: { id_kelas, id_guru: guru.id } });
+  if (!owns) return forbidden();
+  const existing = await prisma.murojaah.findFirst({ where: { id_murojaah: id, id_santri, id_kelas } });
+  if (!existing) return NextResponse.json({ success: false, message: 'Data murojaah tidak ditemukan.' }, { status: 404 });
+  await prisma.murojaah.delete({ where: { id_murojaah: id } });
+  return NextResponse.json({ success: true });
+}
+
 export async function POST(request: Request) {
   const guru = await requireGuru();
   if (!guru) return unauthorized();
@@ -270,9 +284,10 @@ export async function POST(request: Request) {
       }
       case 'murojaah': {
         const d = MurojaahData.parse(data);
-        const existing = await prisma.murojaah.findFirst({ where: { id_santri, tanggal } });
-        if (existing) {
-          await prisma.murojaah.update({ where: { id_murojaah: existing.id_murojaah }, data: { ...d, id_kelas } });
+        if (taskId) {
+          const existing = await prisma.murojaah.findFirst({ where: { id_murojaah: taskId, id_santri, id_kelas, tanggal } });
+          if (!existing) return NextResponse.json({ success: false, message: 'Data murojaah tidak ditemukan.' }, { status: 404 });
+          await prisma.murojaah.update({ where: { id_murojaah: taskId }, data: d });
         } else {
           await prisma.murojaah.create({
             data: {

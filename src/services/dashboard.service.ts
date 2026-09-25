@@ -1,4 +1,4 @@
-import { googleSheetsService } from './db.service';
+import { googleSheetsService, googleSheetsService as dbService } from './db.service';
 import { parseFlexibleDate, getISOWeekKey, parseTimeToMinutes } from '@/lib/date';
 import { getBadgeLabel } from '@/lib/kpi';
 import { getWeeksForKelas } from '@/lib/weeks';
@@ -501,7 +501,7 @@ function normalizeStatusKelancaran(status: string): MurojaahPencapaianLevel {
 
 export async function getMurojaahDetail(id_santri: string, selectedMonthParam?: string): Promise<MurojaahDetailData> {
   const santri = await googleSheetsService.getSantriById(id_santri);
-  const murojaah = await googleSheetsService.getMurojaahBySantri(id_santri);
+  const murojaah = await dbService.getMurojaahBySantri(id_santri);
 
   // surat_diulang is often left blank by teachers so far (status_kelancaran is
   // filled in first) — don't require it, only require the status + a parseable date.
